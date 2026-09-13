@@ -4698,9 +4698,15 @@ const loadMoreFeed = useCallback(async () => {
     }
   }, [currentUser, requireAuth]);
 
-  const openStoryViewer = useCallback((story: Story) => {
-    const id = Number(story?.id);
+  const [focusedStoryId, setFocusedStoryId] = useState<number | null>(null);
+
+  const openStoryViewer = useCallback((storyOrId: Story | number) => {
+    const id = typeof storyOrId === 'number' ? storyOrId : Number(storyOrId?.id);
     if (!id) return;
+
+    const targetStory = typeof storyOrId === 'object' && storyOrId !== null
+      ? storyOrId
+      : orderedStories.find(s => Number(s.id) === id);
 
     setActiveStoryId(id);
 
@@ -4710,7 +4716,9 @@ const loadMoreFeed = useCallback(async () => {
 
     markStorySeen(id);
 
-    preloadStoryMedia(story);
+    if (targetStory) {
+      preloadStoryMedia(targetStory);
+    }
     const next = (() => {
       const idx = orderedStories.findIndex(x => Number(x.id) === id);
       return idx >= 0 ? orderedStories[idx + 1] : null;
@@ -5271,6 +5279,15 @@ const navigateTo = useCallback((target: View) => {
   
   window.scrollTo(0, 0);
 }, [navigate, currentUser]);
+
+  const handleOpenStoryFromFeed = useCallback((storyOrId: Story | number) => {
+    const id = typeof storyOrId === 'number' ? storyOrId : Number(storyOrId?.id);
+    navigateTo('story-feed');
+    if (id) {
+      setFocusedStoryId(id);
+    }
+    openStoryViewer(storyOrId);
+  }, [navigateTo, openStoryViewer]);
   
                      
       
@@ -10551,7 +10568,7 @@ return (
       }}>
 
 <Feed
-  onOpenStory={openStoryViewer}
+  onOpenStory={handleOpenStoryFromFeed}
   feedItems={[]}
   currentUser={currentUser}
   users={users}
@@ -10875,6 +10892,7 @@ return (
             currentUser={currentUser}
             users={users}
             stories={orderedStories}
+            focusedStoryId={focusedStoryId}
             onCreateStory={() => {
               if (!requireAuth('Creating stories')) return;
               setShowCreateStoryModal(true);

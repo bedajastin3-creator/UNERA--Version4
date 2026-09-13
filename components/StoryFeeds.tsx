@@ -6,35 +6,28 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Heart,
-  MessageCircle,
-  Share2,
-  Eye,
   MoreHorizontal,
   Search,
-  Sparkles,
   Layers,
   LayoutGrid,
   List,
-  Flame,
-  CheckCircle,
   Clock,
   Music,
-  Send,
   Trash2,
   Maximize2,
-  RefreshCw,
-  SlidersHorizontal,
   X,
   UserPlus,
   UserCheck,
+  Share2,
 } from 'lucide-react';
-import { Story, User } from '../types';
+import { Story, User, ReactionType } from '../types';
+import { ReactionButton } from './Feed';
 
 interface StoryFeedsProps {
   currentUser: User | null;
   users?: User[];
   stories?: Story[];
+  focusedStoryId?: number | null;
   onCreateStory?: () => void;
   onViewStory?: (storyId: number) => void;
   onProfileClick?: (id: number) => void;
@@ -50,9 +43,7 @@ interface StoryFeedsProps {
   onLoginClick?: () => void;
 }
 
-type FilterTab = 'all' | 'image' | 'video' | 'text' | 'my-stories';
 type ViewMode = 'stream' | 'grid';
-type SortOption = 'recent' | 'popular' | 'unviewed';
 
 const REACTION_ICONS: Record<string, { emoji: string; label: string; color: string }> = {
   like: { emoji: '👍', label: 'Like', color: '#38BDF8' },
@@ -80,26 +71,11 @@ const formatTimeAgo = (dateStr?: string): string => {
   }
 };
 
-const formatExpiryTime = (createdAt?: string): string => {
-  if (!createdAt) return '24h story';
-  try {
-    const created = new Date(createdAt).getTime();
-    const expires = created + 24 * 60 * 60 * 1000;
-    const remaining = expires - Date.now();
-    if (remaining <= 0) return 'Expiring soon';
-    const hours = Math.floor(remaining / (1000 * 60 * 60));
-    if (hours > 0) return `Expires in ${hours}h`;
-    const minutes = Math.floor(remaining / (1000 * 60));
-    return `Expires in ${minutes}m`;
-  } catch {
-    return 'Active';
-  }
-};
-
 export default function StoryFeeds({
   currentUser,
   users = [],
   stories = [],
+  focusedStoryId,
   onCreateStory,
   onViewStory,
   onProfileClick,
@@ -114,11 +90,21 @@ export default function StoryFeeds({
   onBack,
   onLoginClick,
 }: StoryFeedsProps) {
-  const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('stream');
-  const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreatorId, setSelectedCreatorId] = useState<number | null>(null);
+
+  // Auto-scroll to focused story if navigated from Feed
+  useEffect(() => {
+    if (focusedStoryId) {
+      const el = document.getElementById(`story-card-${focusedStoryId}`);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 250);
+      }
+    }
+  }, [focusedStoryId]);
 
   // Group stories by creator for top reel
   const creatorsMap = useMemo(() => {
@@ -163,24 +149,13 @@ export default function StoryFeeds({
     return Array.from(creatorsMap.values());
   }, [creatorsMap]);
 
-  // Filter & sort stories
+  // Filter & sort stories (recent first, search query, creator filter)
   const filteredStories = useMemo(() => {
     let list = [...stories];
 
     // Creator focus filter
     if (selectedCreatorId !== null) {
       list = list.filter((s) => Number(s.user_id || s.user?.id) === selectedCreatorId);
-    }
-
-    // Type filter
-    if (filterTab === 'image') {
-      list = list.filter((s) => s.type === 'image');
-    } else if (filterTab === 'video') {
-      list = list.filter((s) => s.type === 'video');
-    } else if (filterTab === 'text') {
-      list = list.filter((s) => s.type === 'text');
-    } else if (filterTab === 'my-stories' && currentUser) {
-      list = list.filter((s) => Number(s.user_id || s.user?.id) === Number(currentUser.id));
     }
 
     // Search query
@@ -200,41 +175,15 @@ export default function StoryFeeds({
       });
     }
 
-    // Sorting
-    if (sortOption === 'recent') {
-      list.sort((a, b) => {
-        const timeA = new Date(a.created_at || (a as any).createdAt || 0).getTime();
-        const timeB = new Date(b.created_at || (b as any).createdAt || 0).getTime();
-        return timeB - timeA;
-      });
-    } else if (sortOption === 'popular') {
-      list.sort((a, b) => {
-        const reactsA = a.reactions_count || a.reactions?.length || 0;
-        const reactsB = b.reactions_count || b.reactions?.length || 0;
-        return reactsB - reactsA;
-      });
-    } else if (sortOption === 'unviewed') {
-      list.sort((a, b) => {
-        const seenA = a.seen || a.viewed_by_me ? 1 : 0;
-        const seenB = b.seen || b.viewed_by_me ? 1 : 0;
-        return seenA - seenB;
-      });
-    }
+    // Standard feed ordering: recent first
+    list.sort((a, b) => {
+      const timeA = new Date(a.created_at || (a as any).createdAt || 0).getTime();
+      const timeB = new Date(b.created_at || (b as any).createdAt || 0).getTime();
+      return timeB - timeA;
+    });
 
     return list;
-  }, [stories, filterTab, searchQuery, sortOption, selectedCreatorId, currentUser]);
-
-  // Counts for pills
-  const counts = useMemo(() => {
-    const total = stories.length;
-    const images = stories.filter((s) => s.type === 'image').length;
-    const videos = stories.filter((s) => s.type === 'video').length;
-    const texts = stories.filter((s) => s.type === 'text').length;
-    const my = currentUser
-      ? stories.filter((s) => Number(s.user_id || s.user?.id) === Number(currentUser.id)).length
-      : 0;
-    return { total, images, videos, texts, my };
-  }, [stories, currentUser]);
+  }, [stories, searchQuery, selectedCreatorId]);
 
   return (
     <div className="w-full min-h-screen bg-[#050B18] text-[#F8FAFC]">
@@ -264,7 +213,7 @@ export default function StoryFeeds({
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-[#94A3B8] truncate">
-                {counts.total} active stories from friends & community
+                {stories.length} active stories from friends & community
               </p>
             </div>
           </div>
@@ -313,7 +262,7 @@ export default function StoryFeeds({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-5">
         {/* Top Story Creators Carousel */}
         <div className="bg-[#0B1120] border border-[#1E293B] rounded-2xl p-3 sm:p-4 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between mb-3 px-1">
@@ -421,9 +370,8 @@ export default function StoryFeeds({
           </div>
         </div>
 
-        {/* Filter Tabs & Search Bar */}
-        <div className="bg-[#0B1120] border border-[#1E293B] rounded-2xl p-3 sm:p-4 space-y-3 shadow-sm">
-          {/* Search bar */}
+        {/* Clean Search Bar (Categories & Sort completely removed) */}
+        <div className="bg-[#0B1120] border border-[#1E293B] rounded-2xl p-2.5 sm:p-3 shadow-sm">
           <div className="flex items-center gap-2 bg-[#050B18] border border-[#1E293B] rounded-xl px-3 py-2 text-sm focus-within:border-[#1877F2] transition-colors">
             <Search className="w-4 h-4 text-[#64748B]" />
             <input
@@ -443,93 +391,6 @@ export default function StoryFeeds({
               </button>
             )}
           </div>
-
-          {/* Filter pills & sort select */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setFilterTab('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  filterTab === 'all'
-                    ? 'bg-[#1877F2] text-white shadow-sm'
-                    : 'bg-[#141E33] text-[#94A3B8] hover:text-white hover:bg-[#1E293B]'
-                }`}
-              >
-                All Stories ({counts.total})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('video')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                  filterTab === 'video'
-                    ? 'bg-[#1877F2] text-white shadow-sm'
-                    : 'bg-[#141E33] text-[#94A3B8] hover:text-white hover:bg-[#1E293B]'
-                }`}
-              >
-                <span>🎬 Videos</span>
-                <span className="opacity-75">({counts.videos})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('image')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                  filterTab === 'image'
-                    ? 'bg-[#1877F2] text-white shadow-sm'
-                    : 'bg-[#141E33] text-[#94A3B8] hover:text-white hover:bg-[#1E293B]'
-                }`}
-              >
-                <span>📷 Photos</span>
-                <span className="opacity-75">({counts.images})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('text')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                  filterTab === 'text'
-                    ? 'bg-[#1877F2] text-white shadow-sm'
-                    : 'bg-[#141E33] text-[#94A3B8] hover:text-white hover:bg-[#1E293B]'
-                }`}
-              >
-                <span>✍️ Text</span>
-                <span className="opacity-75">({counts.texts})</span>
-              </button>
-
-              {currentUser && (
-                <button
-                  type="button"
-                  onClick={() => setFilterTab('my-stories')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                    filterTab === 'my-stories'
-                      ? 'bg-[#1877F2] text-white shadow-sm'
-                      : 'bg-[#141E33] text-[#94A3B8] hover:text-white hover:bg-[#1E293B]'
-                  }`}
-                >
-                  <span>👤 My Stories</span>
-                  <span className="opacity-75">({counts.my})</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#64748B] uppercase font-bold flex items-center gap-1">
-                <SlidersHorizontal className="w-3 h-3" />
-                Sort:
-              </span>
-              <select
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="bg-[#141E33] text-[#F8FAFC] border border-[#1E293B] rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:border-[#1877F2]"
-              >
-                <option value="recent">Recent First</option>
-                <option value="popular">Most Reacted</option>
-                <option value="unviewed">Unviewed First</option>
-              </select>
-            </div>
-          </div>
         </div>
 
         {/* Story Feed Content */}
@@ -543,8 +404,6 @@ export default function StoryFeeds({
               <p className="text-sm text-[#94A3B8] max-w-sm">
                 {searchQuery
                   ? `No stories matched "${searchQuery}". Try clearing search filters.`
-                  : filterTab === 'my-stories'
-                  ? "You haven't posted any stories yet. Share a photo, video or message!"
                   : 'Be the first to post a story today for your community!'}
               </p>
             </div>
@@ -686,19 +545,19 @@ function StoryFeedCard({
   const [isMuted, setIsMuted] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
 
-  // Quick reply state
-  const [replyText, setReplyText] = useState('');
-  const [isReplying, setIsReplying] = useState(false);
-  const [replySuccess, setReplySuccess] = useState(false);
-
   // Reaction state
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [currentReaction, setCurrentReaction] = useState<string | null>(
     story.my_reaction || (story.liked_by_me ? 'like' : null)
   );
   const [reactionCount, setReactionCount] = useState<number>(
     story.reactions_count || story.reactions?.length || 0
   );
+
+  const commentsCount =
+    (story as any).comments_count ??
+    (story as any).comments?.length ??
+    (story as any).discussions_count ??
+    0;
 
   // Dropdown options
   const [showMenu, setShowMenu] = useState(false);
@@ -738,58 +597,24 @@ function StoryFeedCard({
     }
   };
 
-  const handleSelectReaction = async (rKey: string) => {
-    setShowReactionPicker(false);
+  const handleReactClick = async (type: ReactionType) => {
     if (!currentUser) {
-      onLoginClick?.();
+      if (onLoginClick) onLoginClick();
       return;
     }
+    const isSameReaction = currentReaction === type;
+    const newReaction = isSameReaction ? null : type;
+    const newCount = isSameReaction
+      ? Math.max(0, reactionCount - 1)
+      : currentReaction
+      ? reactionCount
+      : reactionCount + 1;
 
-    const previousReaction = currentReaction;
-    const isSame = currentReaction === rKey;
-    const nextReaction = isSame ? null : rKey;
-
-    setCurrentReaction(nextReaction);
-    setReactionCount((prev) => (isSame ? Math.max(0, prev - 1) : previousReaction ? prev : prev + 1));
+    setCurrentReaction(newReaction);
+    setReactionCount(newCount);
 
     if (onReact) {
-      await onReact(story.id, rKey);
-    }
-  };
-
-  const handleSendReply = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!replyText.trim()) return;
-
-    if (!currentUser) {
-      onLoginClick?.();
-      return;
-    }
-
-    setIsReplying(true);
-    try {
-      if (onReply) {
-        await onReply(story.id, replyText.trim());
-      }
-      setReplyText('');
-      setReplySuccess(true);
-      setTimeout(() => setReplySuccess(false), 2500);
-    } catch (err) {
-      console.error('Failed to send reply:', err);
-    } finally {
-      setIsReplying(false);
-    }
-  };
-
-  const handleQuickEmoji = (emoji: string) => {
-    if (!currentUser) {
-      onLoginClick?.();
-      return;
-    }
-    if (onReply) {
-      onReply(story.id, emoji);
-      setReplySuccess(true);
-      setTimeout(() => setReplySuccess(false), 2500);
+      await onReact(story.id, type);
     }
   };
 
@@ -809,7 +634,10 @@ function StoryFeedCard({
   };
 
   return (
-    <article className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18] sm:rounded-2xl sm:border sm:border-[#1E293B] sm:mb-6 overflow-hidden shadow-xl transition-all">
+    <article
+      id={`story-card-${story.id}`}
+      className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18] sm:rounded-2xl sm:border sm:border-[#1E293B] sm:mb-6 overflow-hidden shadow-xl transition-all"
+    >
       {/* Top Header Row (Author & Context) */}
       <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 border-b border-[#1E293B]/60">
         <div className="flex items-center gap-3 min-w-0">
@@ -837,7 +665,9 @@ function StoryFeedCard({
                 {authorName}
               </button>
               {isVerified && (
-                <CheckCircle className="w-4 h-4 text-[#1877F2] fill-[#1877F2]" />
+                <span className="w-4 h-4 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[10px]">
+                  ✓
+                </span>
               )}
               <span className="text-xs text-[#64748B] hidden xs:inline">
                 @{authorUsername}
@@ -850,11 +680,7 @@ function StoryFeedCard({
                 {formatTimeAgo(story.created_at || (story as any).createdAt)}
               </span>
               <span>·</span>
-              <span className="text-amber-400/90 font-medium">
-                {formatExpiryTime(story.created_at || (story as any).createdAt)}
-              </span>
-              <span>·</span>
-              <span className="px-1.5 py-0.2 rounded-md bg-[#1E293B] text-[10px] font-bold text-[#38BDF8] uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-md bg-[#1E293B] text-[10px] font-bold text-[#38BDF8] uppercase tracking-wider">
                 {isVideo ? '🎬 Video Story' : isImage ? '📷 Photo Story' : '✍️ Text Story'}
               </span>
             </div>
@@ -1102,165 +928,95 @@ function StoryFeedCard({
         )}
       </div>
 
-      {/* Social Feedback Bar (Reactions & Discussions Counts) */}
-      <div className="px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm text-[#94A3B8] border-t border-[#1E293B]">
+      {/* Social Feedback Bar (Reactions & Discussions Counts - Instagram/Feeds style) */}
+      <div className="px-3.5 md:px-4 py-2 flex items-center justify-between text-[#94A3B8] text-[14px] border-t border-[#1E293B]">
         <div className="flex items-center gap-2">
           {reactionCount > 0 ? (
-            <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80">
+            <div className="flex items-center gap-1.5">
               <div className="flex -space-x-1.5">
-                <span className="w-6 h-6 rounded-full bg-[#1E293B] border border-[#0B1120] flex items-center justify-center text-xs">
+                <span className="w-5 h-5 rounded-full bg-[#1E293B] border border-[#0B1120] flex items-center justify-center text-[11px]">
                   {currentReaction && REACTION_ICONS[currentReaction]
                     ? REACTION_ICONS[currentReaction].emoji
                     : '❤️'}
                 </span>
-                <span className="w-6 h-6 rounded-full bg-[#1E293B] border border-[#0B1120] flex items-center justify-center text-xs">
+                <span className="w-5 h-5 rounded-full bg-[#1E293B] border border-[#0B1120] flex items-center justify-center text-[11px]">
                   🔥
                 </span>
               </div>
-              <span className="font-semibold text-white">
-                {reactionCount} {reactionCount === 1 ? 'reaction' : 'reactions'}
+              <span className="text-[13px] text-[#F8FAFC] font-semibold">
+                {reactionCount}
               </span>
             </div>
           ) : (
-            <span className="text-[#64748B]">Be the first to react</span>
+            <span className="text-xs text-[#64748B]">Be the first to react</span>
           )}
         </div>
 
         <div className="flex items-center gap-4">
           <button
             type="button"
+            className="hover:underline cursor-pointer text-[#94A3B8] hover:text-[#F8FAFC] text-[13px] transition-colors"
             onClick={() => onComment?.(story.id)}
-            className="hover:text-white transition-colors cursor-pointer flex items-center gap-1"
           >
-            <MessageCircle className="w-4 h-4" />
-            <span>Discussions</span>
+            {commentsCount} Discussions
           </button>
-
-          <div className="flex items-center gap-1 text-[#64748B]">
-            <Eye className="w-4 h-4" />
-            <span>{story.views_count || story.views || 1} views</span>
-          </div>
         </div>
       </div>
 
-      {/* Main Action Buttons (Like, Comment, Share, Watch) */}
-      <div className="px-3 py-2 border-t border-[#1E293B] flex items-center justify-between relative bg-[#0B1120]/40">
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Reaction Button with Floating Drawer */}
-          <div
-            className="relative"
-            onMouseEnter={() => setShowReactionPicker(true)}
-            onMouseLeave={() => setShowReactionPicker(false)}
+      {/* Main Action Buttons: ReactionButton from Feeds, Comment, Share, View Story */}
+      <div className="px-3.5 py-2 border-t border-white/10 flex items-center justify-between bg-[#0B1120]/60">
+        <div className="flex items-center gap-4">
+          <ReactionButton
+            currentUserReactions={(currentReaction as ReactionType) || undefined}
+            reactionCount={reactionCount}
+            onReact={handleReactClick}
+            isGuest={!currentUser}
+          />
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onComment?.(story.id);
+            }}
+            aria-label="Discuss & Comments"
+            title="Discuss"
           >
-            <button
-              type="button"
-              onClick={() => handleSelectReaction(currentReaction || 'like')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-                currentReaction
-                  ? 'text-[#38BDF8] bg-blue-500/10'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-[#1E293B]'
-              }`}
-            >
-              {currentReaction && REACTION_ICONS[currentReaction] ? (
-                <span className="text-base">{REACTION_ICONS[currentReaction].emoji}</span>
-              ) : (
-                <Heart className="w-4 h-4" />
-              )}
-              <span>{currentReaction ? REACTION_ICONS[currentReaction]?.label || 'Reacted' : 'React'}</span>
-            </button>
-
-            {/* Floating Quick Reaction Drawer */}
-            {showReactionPicker && (
-              <div className="absolute bottom-11 left-0 z-50 bg-[#0B1120] border border-[#1E293B] rounded-full p-1.5 shadow-2xl flex items-center gap-1 animate-fade-in backdrop-blur-md">
-                {Object.entries(REACTION_ICONS).map(([key, item]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handleSelectReaction(key)}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:scale-125 transition-transform flex items-center justify-center text-lg sm:text-xl hover:bg-[#1E293B]"
-                    title={item.label}
-                  >
-                    {item.emoji}
-                  </button>
-                ))}
-              </div>
+            <i className="far fa-comment text-[22px]"></i>
+            {commentsCount > 0 && (
+              <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                {commentsCount}
+              </span>
             )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onComment?.(story.id)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#94A3B8] hover:text-white hover:bg-[#1E293B] transition-colors"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Comment</span>
           </button>
-
           <button
             type="button"
-            onClick={() => onShare?.(story)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#94A3B8] hover:text-white hover:bg-[#1E293B] transition-colors"
+            className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!currentUser) {
+                if (onLoginClick) onLoginClick();
+                return;
+              }
+              onShare?.(story);
+            }}
+            aria-label="Share story"
+            title="Share"
           >
-            <Share2 className="w-4 h-4" />
-            <span>Share</span>
+            <i className="far fa-paper-plane text-[21px]"></i>
           </button>
         </div>
 
         <button
           type="button"
           onClick={() => onViewStory?.(story.id)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+          className="px-3.5 py-1.5 rounded-full bg-[#1877F2] hover:bg-[#166FE5] text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
         >
           <Play className="w-3.5 h-3.5 fill-white" />
-          <span>Watch Story</span>
+          <span>View Story</span>
         </button>
-      </div>
-
-      {/* Quick Reply & Emoji Reaction Bar */}
-      <div className="px-3.5 py-3 border-t border-[#1E293B]/60 bg-[#0B1120]/60 space-y-2">
-        {/* Fast 1-tap emojis */}
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[11px] font-semibold text-[#64748B]">
-            Quick reaction to {authorName.split(' ')[0]}:
-          </span>
-          <div className="flex items-center gap-2">
-            {['❤️', '🔥', '👏', '😂', '😮', '😍'].map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => handleQuickEmoji(emoji)}
-                className="hover:scale-130 active:scale-95 transition-transform text-sm sm:text-base cursor-pointer"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Input box */}
-        <form onSubmit={handleSendReply} className="flex items-center gap-2">
-          <input
-            type="text"
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder={`Reply to ${authorName}...`}
-            className="flex-1 bg-[#050B18] border border-[#1E293B] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-[#64748B] focus:outline-none focus:border-[#1877F2] transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={!replyText.trim() || isReplying}
-            className="px-3.5 py-2 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] disabled:opacity-40 disabled:hover:bg-[#1877F2] text-white text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Send</span>
-          </button>
-        </form>
-
-        {replySuccess && (
-          <p className="text-xs text-emerald-400 font-semibold px-1 animate-fade-in">
-            ✓ Reply sent to {authorName}!
-          </p>
-        )}
       </div>
     </article>
   );
