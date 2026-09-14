@@ -1,6 +1,6 @@
-// functions/api/group-posts.ts
 import type { PagesFunction } from "@cloudflare/workers-types";
 import { cors, ok, bad, server } from "./_cors";
+import { withNewContentId } from "../utils/ids";
 
 type Env = { DB: D1Database };
 
@@ -196,14 +196,6 @@ const getGroupCategory = async (env: any, group_id: number) => {
 
 /** ============================================================
  * CREATE: POST /api/group-posts
- * Supports:
- * - media_url
- * - media_urls
- * - media_types
- * - media_meta
- * - recruitment fields
- * - buy_sell fields
- * - music_drama fields
  * ============================================================ */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
@@ -287,74 +279,79 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       if (!condition) return bad("condition is required for buy_sell posts");
     }
 
-    const result = await env.DB.prepare(
-      `INSERT INTO group_posts (
-        group_id, user_id, content,
-        media_url, media_urls, media_types, media_meta,
-        visibility,
+    const { id: post_id } = await withNewContentId(async (id) => {
+      return await env.DB.prepare(
+        `INSERT INTO group_posts (
+          id,
+          group_id, user_id, content,
+          media_url, media_urls, media_types, media_meta,
+          visibility,
 
-        job_title, company, job_type, salary,
-        street, district, region, country, location,
-        application_type, application_value, expiry_date,
+          job_title, company, job_type, salary,
+          street, district, region, country, location,
+          application_type, application_value, expiry_date,
 
-        price, currency, condition, status,
+          price, currency, condition, status,
 
-        artist, series, episode, duration
+          artist, series, episode, duration
+        )
+        VALUES (?, ?,
+                ?, ?, ?,
+                ?, ?, ?, ?,
+                ?,
+
+                ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?, ?, ?,
+
+                ?, ?, ?, ?,
+
+                ?, ?, ?, ?)`
       )
-      VALUES (?, ?, ?,
-              ?, ?, ?, ?,
-              ?,
+        .bind(
+          id,
+          group_id,
+          user_id,
+          content,
 
-              ?, ?, ?, ?,
-              ?, ?, ?, ?, ?,
-              ?, ?, ?,
+          media_url,
+          media_urls_json,
+          media_types_json,
+          media_meta_json,
 
-              ?, ?, ?, ?,
+          visibility,
 
-              ?, ?, ?, ?)`
-    )
-      .bind(
-        group_id,
-        user_id,
-        content,
+          job_title || null,
+          company || null,
+          job_type || null,
+          salary || null,
 
-        media_url,
-        media_urls_json,
-        media_types_json,
-        media_meta_json,
+          street || null,
+          district || null,
+          region || null,
+          country || null,
+          location || null,
 
-        visibility,
+          application_type || null,
+          application_value || null,
+          expiry_date || null,
 
-        job_title || null,
-        company || null,
-        job_type || null,
-        salary || null,
+          price,
+          currency,
+          condition || null,
+          status,
 
-        street || null,
-        district || null,
-        region || null,
-        country || null,
-        location || null,
-
-        application_type || null,
-        application_value || null,
-        expiry_date || null,
-
-        price,
-        currency,
-        condition || null,
-        status,
-
-        artist || null,
-        series || null,
-        episode || null,
-        duration || null
-      )
-      .run();
+          artist || null,
+          series || null,
+          episode || null,
+          duration || null
+        )
+        .run();
+    });
 
     return ok({
       success: true,
-      post_id: Number(result.meta.last_row_id),
+      post_id,
       media_urls: media_urls_arr,
       media_types: media_types_arr,
       media_meta: media_meta_arr,
