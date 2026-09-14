@@ -288,26 +288,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
           group_id, user_id, content,
           media_url, media_urls, media_types, media_meta,
           visibility,
-
           job_title, company, job_type, salary,
           street, district, region, country, location,
           application_type, application_value, expiry_date,
-
           price, currency, condition, status,
-
           artist, series, episode, duration
         )
-        VALUES (?, ?, ?,
-                ?, ?, ?, ?,
-                ?,
-
-                ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?,
-
-                ?, ?, ?, ?,
-
-                ?, ?, ?, ?)`
+        VALUES (
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?
+        )`
       )
         .bind(
           id,
@@ -359,7 +355,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       group_category: groupCategory,
     });
   } catch (e: any) {
-    // ─── DIAGNOSTIC CATCH — remove after debugging ───
+    // ─── DIAGNOSTIC CATCH — remove after confirming it works ───
     const err: any = e || {};
     return new Response(
       JSON.stringify({
