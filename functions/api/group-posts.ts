@@ -1,7 +1,7 @@
 // functions/api/group-posts.ts
 import type { PagesFunction } from "@cloudflare/workers-types";
 import { cors, ok, bad, server } from "./_cors";
-import { withNewContentId } from "../utils/ids";   // ← ADDED
+import { withNewContentId } from "../utils/ids";
 
 type Env = { DB: D1Database };
 
@@ -197,14 +197,6 @@ const getGroupCategory = async (env: any, group_id: number) => {
 
 /** ============================================================
  * CREATE: POST /api/group-posts
- * Supports:
- * - media_url
- * - media_urls
- * - media_types
- * - media_meta
- * - recruitment fields
- * - buy_sell fields
- * - music_drama fields
  * ============================================================ */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
@@ -288,15 +280,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       if (!condition) return bad("condition is required for buy_sell posts");
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Allocate hard, globally-unique content ID.
-    // INSERT is your original (working) SQL with `id` prepended.
-    // 29 columns / 29 placeholders / 29 bind args — all match.
-    // ─────────────────────────────────────────────────────────
-    const { id: post_id } = await withNewContentId(async (id) => {   // ← ADDED
+    // ---- Allocate hard, globally-unique content ID + insert ----
+    const { id: post_id } = await withNewContentId(async (id) => {
       return await env.DB.prepare(
         `INSERT INTO group_posts (
-          id,                                                    -- ← ADDED
+          id,
           group_id, user_id, content,
           media_url, media_urls, media_types, media_meta,
           visibility,
@@ -309,7 +297,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
           artist, series, episode, duration
         )
-        VALUES (?, ?, ?,                                           -- ← ADDED one ?
+        VALUES (?, ?, ?,
                 ?, ?, ?, ?,
                 ?,
 
@@ -322,7 +310,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
                 ?, ?, ?, ?)`
       )
         .bind(
-          id,                                                      // ← ADDED
+          id,
           group_id,
           user_id,
           content,
@@ -371,8 +359,25 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       group_category: groupCategory,
     });
   } catch (e: any) {
-    console.error("GROUP_POST_INSERT_FAILED:", e?.message || e);   // ← ADDED (remove after confirming)
-    return server(e?.message || "Failed to create group post");
+    // ─── DIAGNOSTIC CATCH — remove after debugging ───
+    const err: any = e || {};
+    return new Response(
+      JSON.stringify({
+        stage: "group_posts.onRequestPost",
+        message: String(err?.message || err),
+        name: String(err?.name || ""),
+        cause: String(err?.cause || ""),
+        stack: String(err?.stack || "").split("\n").slice(0, 5).join(" | "),
+      }),
+      {
+        status: 500,
+        headers: {
+          ...cors,
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   }
 };
 
