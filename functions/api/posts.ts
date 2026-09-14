@@ -1,5 +1,173 @@
+import type { PagesFunction } from "@cloudflare/workers-types";
 import { withNewContentId } from "../utils/ids";
-// (add this import at the top of the file, alongside the existing imports)
+
+type Env = { DB: D1Database };
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+const json = (data: any, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
+
+const safeString = (v: any) => (typeof v === "string" ? v : "");
+const safeNumber = (v: any, fallback = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const isHttpUrl = (v: any) => {
+  if (typeof v !== "string") return false;
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const normalizeStringArray = (v: any): string[] => {
+  if (Array.isArray(v)) {
+    return v.map((x) => String(x || "").trim()).filter(Boolean);
+  }
+  if (typeof v === "string") {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) {
+        return parsed.map((x) => String(x || "").trim()).filter(Boolean);
+      }
+    } catch {}
+  }
+  return [];
+};
+
+const normalizeMediaMetaArray = (v: any): any[] => {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (typeof v === "string") {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {}
+  }
+  return [];
+};
+
+const normalizeMediaType = (v: any, fallback = "image") => {
+  const t = String(v || "").trim().toLowerCase();
+  if (t === "image" || t === "video" || t === "audio") return t;
+  return fallback;
+};
+
+const inferTypeFromUrl = (url: string) => {
+  const u = String(url || "").toLowerCase();
+  if (
+    u.includes(".mp4") ||
+    u.includes(".webm") ||
+    u.includes(".mov") ||
+    u.includes(".m4v") ||
+    u.includes(".m3u8")
+  ) {
+    return "video";
+  }
+  if (
+    u.includes(".mp3") ||
+    u.includes(".wav") ||
+    u.includes(".ogg") ||
+    u.includes(".m4a") ||
+    u.includes(".aac")
+  ) {
+    return "audio";
+  }
+  return "image";
+};
+
+const normalizePostMedia = (item: any) => {
+  const mediaMeta = normalizeMediaMetaArray(item?.media_meta);
+  const mediaUrls = normalizeStringArray(item?.media_urls);
+  const mediaTypes = normalizeStringArray(item?.media_types);
+
+  // 1) Best source: media_meta with thumb/feed/full
+  if (mediaMeta.length > 0) {
+    const normalized = mediaMeta
+      .map((m: any) => {
+        const thumb = String(m?.thumb || m?.thumbnail_url || "").trim();
+        const feed = String(
+          m?.feed || m?.feed_url || m?.url || m?.full || m?.full_url || ""
+        ).trim();
+        const full = String(
+          m?.full || m?.full_url || m?.feed || m?.feed_url || m?.url || m?.thumb || ""
+        ).trim();
+
+        const chosenType = normalizeMediaType(
+          m?.type,
+          inferTypeFromUrl(full || feed || thumb)
+        );
+
+        return {
+          thumb: isHttpUrl(thumb) ? thumb : null,
+          feed: isHttpUrl(feed) ? feed : null,
+          full: isHttpUrl(full) ? full : null,
+          type: chosenType,
+        };
+      })
+      .filter((m: any) => m.thumb || m.feed || m.full);
+
+    if (normalized.length > 0) return normalized;
+  }
+
+  // 2) Fallback: media_urls + media_types
+  if (mediaUrls.length > 0) {
+    const normalized = mediaUrls
+      .map((url, i) => {
+        const clean = String(url || "").trim();
+        if (!isHttpUrl(clean)) return null;
+
+        const t = normalizeMediaType(mediaTypes[i], inferTypeFromUrl(clean));
+
+        return {
+          thumb: t === "image" ? clean : null,
+          feed: clean,
+          full: clean,
+          type: t,
+        };
+      })
+      .filter(Boolean);
+
+    if (normalized.length > 0) return normalized;
+  }
+
+  // 3) Final fallback: single media_url/media_type
+  const singleUrl = String(item?.media_url || "").trim();
+  if (isHttpUrl(singleUrl)) {
+    const t = normalizeMediaType(item?.media_type, inferTypeFromUrl(singleUrl));
+    return [
+      {
+        thumb: t === "image" ? singleUrl : null,
+        feed: singleUrl,
+        full: singleUrl,
+        type: t,
+      },
+    ];
+  }
+
+  return [];
+};
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+};
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
@@ -121,7 +289,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     let post_id: number;
 
     try {
-      const { id, result } = await withNewContentId(async (id) => {
+      const { id } = await withNewContentId(async (id) => {
         return await env.DB.prepare(
           `INSERT INTO posts
              (id, user_id, content, media_url, media_type,
@@ -142,7 +310,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
       post_id = id;
     } catch (e: any) {
-      // Fallback: older schema without media_meta (kept for safety)
+      // Fallback: older schema without media_meta
       const msg = String(e?.message || "");
       const looksLikeMissingColumn =
         msg.includes("no such column") || msg.includes("media_meta");
@@ -207,6 +375,49 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       },
       201
     );
+  } catch (err: any) {
+    return json(
+      { error: "Backend crash", message: String(err?.message ?? err) },
+      500
+    );
+  }
+};
+
+export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+  try {
+    let rawList: any[] = [];
+    if (env?.DB) {
+      try {
+        const { results } = await env.DB.prepare(
+          "SELECT * FROM posts ORDER BY created_at DESC"
+        ).all();
+        if (Array.isArray(results) && results.length > 0) {
+          rawList = results;
+        }
+      } catch (dbErr) {
+        console.warn("DB query warning:", dbErr);
+      }
+    }
+
+    const normalized = rawList.map((item: any) => {
+      const media = normalizePostMedia(item);
+
+      return {
+        ...item,
+        media,
+        media_count: media.length,
+        thumb_url: media[0]?.thumb || item.media_url || null,
+        feed_url: media[0]?.feed || item.media_url || null,
+        full_url: media[0]?.full || item.media_url || null,
+        video_url:
+          item.video_url ||
+          (item.media_type === "video" ? item.media_url : null) ||
+          media.find((m: any) => m.type === "video")?.feed ||
+          null,
+      };
+    });
+
+    return json(normalized, 200);
   } catch (err: any) {
     return json(
       { error: "Backend crash", message: String(err?.message ?? err) },
