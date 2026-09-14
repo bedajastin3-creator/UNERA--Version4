@@ -5,8 +5,11 @@
 // Fits in JS safe-integer range (< 2^53).
 
 export function newContentId(): number {
-  const hi = Math.floor(Math.random() * 0x200000);       // 21 bits
-  const lo = Math.floor(Math.random() * 0x100000000);    // 32 bits
+  // hi: 21 bits (0 .. 2,097,151)
+  // lo: 32 bits (0 .. 4,294,967,295)
+  // product < 2^53
+  const hi = Math.floor(Math.random() * 0x200000);
+  const lo = Math.floor(Math.random() * 0x100000000);
   return hi * 0x100000000 + lo;
 }
 
