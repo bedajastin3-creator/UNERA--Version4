@@ -1,4 +1,6 @@
 // functions/api/products.ts
+import { withNewContentId } from "../utils/ids";
+
 type PagesFunction = any;
 
 const cors = {
@@ -118,41 +120,52 @@ export const onRequestPost: PagesFunction = async ({ request, env }: any) => {
       );
     }
 
-    const result = await env.DB.prepare(`
-      INSERT INTO products
-      (
-        seller_id,
-        title,
-        category,
-        description,
-        country,
-        address,
-        main_price,
-        discount_price,
-        quantity,
-        phone_number,
-        images,
-        image_variants
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-      .bind(
-        seller_id,
-        title,
-        category,
-        description,
-        country,
-        address,
-        main_price,
-        discount_price,
-        quantity,
-        phone_number,
-        JSON.stringify(images),
-        JSON.stringify(image_variants)
-      )
-      .run();
-
-    const id = result?.meta?.last_row_id;
+    // ─────────────────────────────────────────────────────────
+    // Column count check:
+    //   id, seller_id, title, category, description,
+    //   country, address, main_price, discount_price,
+    //   quantity, phone_number, images, image_variants
+    //   → 13 columns
+    //   → 13 placeholders
+    //   → 13 bind args
+    // ─────────────────────────────────────────────────────────
+    const { id } = await withNewContentId(async (id) => {
+      return await env.DB.prepare(`
+        INSERT INTO products
+        (
+          id,
+          seller_id,
+          title,
+          category,
+          description,
+          country,
+          address,
+          main_price,
+          discount_price,
+          quantity,
+          phone_number,
+          images,
+          image_variants
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+        .bind(
+          id,
+          seller_id,
+          title,
+          category,
+          description,
+          country,
+          address,
+          main_price,
+          discount_price,
+          quantity,
+          phone_number,
+          JSON.stringify(images),
+          JSON.stringify(image_variants)
+        )
+        .run();
+    });
 
     const created = await env.DB.prepare(`
       SELECT
