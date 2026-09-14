@@ -1,4 +1,6 @@
+// functions/api/songs.ts
 import type { PagesFunction } from "@cloudflare/workers-types";
+import { withNewContentId } from "../utils/ids";
 
 type Env = { DB: D1Database };
 
@@ -92,9 +94,34 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       );
     }
 
-    const result = await env.DB.prepare(`
-      INSERT INTO songs
-        (
+    // ─────────────────────────────────────────────────────────
+    // Column count check:
+    //   id, uploader_id, title, artist_name, album_name,
+    //   cover_image_url, audio_url, duration_seconds, genre,
+    //   plays_count (literal 0)
+    //   → 10 columns listed
+    //   → 9 placeholders + literal 0 for plays_count
+    //   → 9 bind args
+    // ─────────────────────────────────────────────────────────
+    const { id: song_id } = await withNewContentId(async (id) => {
+      return await env.DB.prepare(`
+        INSERT INTO songs
+          (
+            id,
+            uploader_id,
+            title,
+            artist_name,
+            album_name,
+            cover_image_url,
+            audio_url,
+            duration_seconds,
+            genre,
+            plays_count
+          )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      `)
+        .bind(
+          id,
           uploader_id,
           title,
           artist_name,
@@ -102,26 +129,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
           cover_image_url,
           audio_url,
           duration_seconds,
-          genre,
-          plays_count
+          genre
         )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-    `)
-      .bind(
-        uploader_id,
-        title,
-        artist_name,
-        album_name,
-        cover_image_url,
-        audio_url,
-        duration_seconds,
-        genre
-      )
-      .run();
+        .run();
+    });
 
     return json({
       success: true,
-      song_id: (result as any)?.meta?.last_row_id ?? null,
+      song_id,
     });
   } catch (e: any) {
     return json({ success: false, error: e?.message || "Server error" }, 500);
