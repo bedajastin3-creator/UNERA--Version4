@@ -1,12 +1,20 @@
 // functions/utils/ids.ts
+//
+// Hard, non-sequential, non-guessable content IDs.
+// Shared globally across posts, group_posts, events, songs, stories, products.
+// Fits in JS safe-integer range (< 2^53).
 
 export function newContentId(): number {
-  // 53-bit safe positive integer
   const hi = Math.floor(Math.random() * 0x200000);       // 21 bits
   const lo = Math.floor(Math.random() * 0x100000000);    // 32 bits
   return hi * 0x100000000 + lo;
 }
 
+/**
+ * Attempt an insert with a fresh random content id.
+ * Retries up to `maxAttempts` if the DB reports a PK/UNIQUE conflict.
+ * Returns { id, result } on success.
+ */
 export async function withNewContentId<T>(
   run: (id: number) => Promise<T>,
   maxAttempts = 5,
