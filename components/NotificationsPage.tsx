@@ -9,6 +9,8 @@ interface Props {
   onOpenNotification?: (notification: Notification) => void;
   onMarkAllAsRead?: () => Promise<any> | void;
   onDeleteNotification?: (notificationId: number) => Promise<any> | void;
+  onLoadMore?: () => Promise<any> | void;
+  hasMore?: boolean;
   simulateApi?: boolean;
   stickyHeader?: boolean;
 }
@@ -16,7 +18,7 @@ interface Props {
 const AVATAR_SIZE = 64;
 const STACK_AVATAR_SIZE = 28;
 const INITIAL_EARLIER_COUNT = 10;
-const LOAD_MORE_COUNT = 10;
+const LOAD_MORE_COUNT = 15;
 
 const safeText = (v: any, fallback = "") => (typeof v === "string" ? v : fallback);
 
@@ -511,6 +513,8 @@ export const NotificationsPage: React.FC<Props> = ({
   onOpenNotification,
   onMarkAllAsRead,
   onDeleteNotification,
+  onLoadMore,
+  hasMore = false,
   simulateApi = false,
   stickyHeader = false,
 }) => {
@@ -531,6 +535,7 @@ export const NotificationsPage: React.FC<Props> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [earlierVisibleCount, setEarlierVisibleCount] = useState(INITIAL_EARLIER_COUNT);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -538,7 +543,6 @@ export const NotificationsPage: React.FC<Props> = ({
 
   useEffect(() => {
     setLocalNotifications(Array.isArray(notifications) ? notifications : []);
-    setEarlierVisibleCount(INITIAL_EARLIER_COUNT);
   }, [notifications]);
 
   useEffect(() => {
@@ -569,17 +573,31 @@ export const NotificationsPage: React.FC<Props> = ({
   }, [localNotifications]);
 
   const { newNotifications, earlierNotifications } = useMemo(() => {
-    const now = Date.now();
-    const threshold = 48 * 60 * 60 * 1000;
-
     const newN: Notification[] = [];
     const earlierN: Notification[] = [];
 
     sortedNotifications.forEach((n) => {
-      const t = getNotificationTime(n);
-      if (Number.isFinite(t) && now - t <= threshold) newN.push(n);
-      else earlierN.push(n);
+      const isUnread = !safeNumber(n.is_read, 0);
+
+      // Unread notifications go to New; read notifications are previous/earlier
+      if (isUnread) {
+        newN.push(n);
+      } else {
+        earlierN.push(n);
+      }
     });
+
+    // If there are more than 8 unread notifications, keep the newest 8 in New and push the rest to Earlier
+    if (newN.length > 8) {
+      const overflow = newN.splice(8);
+      earlierN.unshift(...overflow);
+      earlierN.sort((a, b) => {
+        const ta = getNotificationTime(a);
+        const tb = getNotificationTime(b);
+        if (tb !== ta) return tb - ta;
+        return safeNumber(b.id, 0) - safeNumber(a.id, 0);
+      });
+    }
 
     return { newNotifications: newN, earlierNotifications: earlierN };
   }, [sortedNotifications]);
@@ -589,7 +607,9 @@ export const NotificationsPage: React.FC<Props> = ({
     [earlierNotifications, earlierVisibleCount]
   );
 
-  const hasMoreEarlier = visibleEarlierNotifications.length < earlierNotifications.length;
+  const hasMoreEarlier =
+    visibleEarlierNotifications.length < earlierNotifications.length ||
+    Boolean(hasMore && onLoadMore);
 
   const showToast = (type: "error" | "success", text: string, ms = 3000) => {
     setToast({ type, text });
@@ -623,13 +643,25 @@ export const NotificationsPage: React.FC<Props> = ({
     }
   };
 
-  const handleLoadMoreEarlier = () => {
-    const currentScrollY = window.scrollY;
+  const handleLoadMoreEarlier = async () => {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+
+    // Expand visible count by LOAD_MORE_COUNT to show previous notifications
     setEarlierVisibleCount((prev) => prev + LOAD_MORE_COUNT);
 
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: currentScrollY, behavior: "auto" });
-    });
+    if (onLoadMore) {
+      try {
+        const result = onLoadMore();
+        if (result && typeof (result as Promise<any>).then === "function") {
+          await result;
+        }
+      } catch (err) {
+        console.error("Failed to load more notifications:", err);
+      }
+    }
+
+    setIsLoadingMore(false);
   };
 
   const handleDeleteNotification = async (notificationId: number) => {
@@ -920,7 +952,7 @@ export const NotificationsPage: React.FC<Props> = ({
           </div>
         )}
 
-        {visibleEarlierNotifications.length > 0 && (
+        {(visibleEarlierNotifications.length > 0 || (hasMore && Boolean(onLoadMore))) && (
           <div className="bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-[#1E293B] bg-[#0B1120]/50 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -937,9 +969,17 @@ export const NotificationsPage: React.FC<Props> = ({
               <div className="p-3 bg-[#0B1120]/30 border-t border-[#1E293B]">
                 <button
                   onClick={handleLoadMoreEarlier}
-                  className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#F97316]/50 text-[#F8FAFC] text-sm font-semibold transition-all shadow-sm"
+                  disabled={isLoadingMore}
+                  className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#F97316]/50 text-[#F8FAFC] text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  See previous notifications
+                  {isLoadingMore ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin text-xs text-[#F97316]" />
+                      <span>Loading previous notifications...</span>
+                    </>
+                  ) : (
+                    <span>See previous notifications</span>
+                  )}
                 </button>
               </div>
             )}

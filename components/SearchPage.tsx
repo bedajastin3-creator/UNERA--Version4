@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { avatarFrom, safeUserId, formatRelativeTime } from './Feed';
 import { apiFetch } from '../utils/api';
+import { VerifiedBadge } from './VerifiedBadge';
 
 export interface RecentSearchItem {
   id: string;
@@ -491,7 +492,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                                 {user.name}
                               </span>
                               {user.is_verified && (
-                                <i className="fas fa-check-circle text-[#38BDF8] text-xs"></i>
+                                <VerifiedBadge size={14} className="shrink-0" />
                               )}
                             </div>
                             <div className="text-xs text-[#64748B] truncate">

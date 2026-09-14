@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Notification } from '../types';
 import { NotificationDropdown } from './Notifications';
 import { useNavigate } from 'react-router-dom';
+import { VerifiedBadge } from './VerifiedBadge';
 
 /* ============================================================
    GLOBAL ONLINE PRESENCE
@@ -669,7 +670,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* RIGHT: Search, Notifications (Carrot Orange Badge), Profile / Login */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-            {/* 1. Premium Top Search Button */}
+            {/* 1. Premium Top Search Button - White border, black in middle */}
             <button
               onClick={() => {
                 if (onSearchClick) {
@@ -678,14 +679,14 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowSearchOverlay(true);
                 }
               }}
-              className="w-10 h-10 rounded-full bg-[#1E293B] hover:bg-[#334155] active:bg-[#334155]/90 active:scale-95 border border-[#334155]/50 text-[#E2E8F0] hover:text-white flex items-center justify-center transition-all duration-150 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#F97316]/40 shadow-sm shadow-black/30 group"
+              className="w-10 h-10 rounded-full bg-black hover:bg-zinc-900 active:scale-95 border-2 border-white text-white flex items-center justify-center transition-all duration-150 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-white/40 shadow-sm shadow-black/50 group"
               aria-label="Search"
               title="Search"
             >
-              <i className="fas fa-search text-[15px] text-[#94A3B8] group-hover:text-white group-hover:scale-105 transition-all"></i>
+              <i className="fas fa-search text-[15px] text-white group-hover:scale-105 transition-all"></i>
             </button>
 
-            {/* 2. Premium Notification Button */}
+            {/* 2. Premium Notification Button - White bolded borders and black theme color in middle */}
             <button
               onClick={() => {
                 if (onNotificationClick) {
@@ -694,17 +695,29 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowNotifications((prev) => !prev);
                 }
               }}
-              className={`w-10 h-10 rounded-full border transition-all duration-150 flex items-center justify-center relative flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#F97316]/40 shadow-sm shadow-black/30 active:scale-95 group ${
+              className={`w-10 h-10 rounded-full bg-black border-2 border-white transition-all duration-150 flex items-center justify-center relative flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-white/40 shadow-sm shadow-black/50 active:scale-95 group ${
                 showNotifications || activeTab === 'notifications'
-                  ? 'bg-[#1E293B] border-[#F97316] text-[#F97316] shadow-[0_0_12px_rgba(249,115,22,0.25)]'
-                  : 'bg-[#1E293B] hover:bg-[#334155] active:bg-[#334155]/90 border-[#334155]/50 text-[#94A3B8] hover:text-white'
+                  ? 'ring-2 ring-white/60 shadow-[0_0_12px_rgba(255,255,255,0.4)]'
+                  : 'hover:bg-zinc-900'
               }`}
               aria-label="Notifications"
               title="Notifications"
             >
-              <i className="fas fa-bell text-[15px] group-hover:scale-105 transition-transform"></i>
+              {/* Notification bell icon with white bolded borders and black theme colour in middle */}
+              <svg
+                viewBox="0 0 24 24"
+                className="w-[18px] h-[18px] group-hover:scale-105 transition-transform"
+                fill="#000000"
+                stroke="#FFFFFF"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1.5 bg-[#F97316] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-[#0B1120] leading-none pointer-events-none select-none tracking-tight">
+                <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1.5 bg-[#F97316] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-black leading-none pointer-events-none select-none tracking-tight">
                   {unreadCount > 99 ? '99+' : unreadCount > 15 ? '15+' : unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -864,8 +877,11 @@ export const Header: React.FC<HeaderProps> = ({
                           className="w-11 h-11 rounded-xl object-cover border border-[#1E293B]"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-[15px] text-[#F8FAFC] truncate">
-                            {user.name}
+                          <div className="font-semibold text-[15px] text-[#F8FAFC] flex items-center gap-1.5 truncate">
+                            <span className="truncate">{user.name}</span>
+                            {(user.is_verified || (user as any).verified) && (
+                              <VerifiedBadge size={14} />
+                            )}
                           </div>
                           {!!(user as any).username && (
                             <div className="text-[#94A3B8] text-xs truncate">

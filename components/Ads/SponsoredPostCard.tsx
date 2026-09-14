@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { User } from "../../types";
+import { VerifiedBadge } from "../VerifiedBadge";
 
 interface SponsoredPostCardProps {
   ad: any;
@@ -126,7 +127,7 @@ export const SponsoredPostCard: React.FC<SponsoredPostCardProps> = ({
             >
               {advertiserName}
               {ad.is_verified && (
-                <i className="fas fa-check-circle text-[#1877F2] text-[13px] ml-1"></i>
+                <VerifiedBadge size={14} className="ml-1.5 shrink-0" />
               )}
             </div>
 

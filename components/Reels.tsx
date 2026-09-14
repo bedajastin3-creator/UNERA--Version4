@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { User, Reel, ReactionType } from '../types';
 import { ShareBottomSheet, topReactionEmojis, formatReactionText, reactionEmoji } from './Feed';
 import Filters, { UneraFilter, buildUneraFilterStyle, UneraFilterOverlay } from './filters';
+import { VerifiedBadge } from './VerifiedBadge';
 
 // ==================== SHARED BUTTON CLASSES ====================
 const reelGlassButton =
@@ -1840,7 +1841,7 @@ export const SoundDetailView: React.FC<SoundDetailViewProps> = ({
                 {displaySound.creator?.name || 'Original Sound'}
               </span>
               {displaySound.creator?.is_verified && (
-                <i className="fas fa-check-circle text-[#1877F2] ml-1 text-xs" />
+                <VerifiedBadge size={14} className="ml-1" />
               )}
             </button>
           </div>
@@ -3908,7 +3909,7 @@ useEffect(() => {
                                 {truncateName(author.name, 9)}
                               </span>
                               {author.is_verified && (
-                                <i className="fas fa-check-circle text-[#1877F2] text-xs shrink-0"></i>
+                                <VerifiedBadge size={16} className="shrink-0" />
                               )}
                               {currentUser?.id !== author.id && (
                                 // UPDATED: Follow button with reelFollowButton class

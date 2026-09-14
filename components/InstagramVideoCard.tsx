@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { apiFetch } from '../utils/api';
 import { safeUserId, avatarFrom, formatRelativeTime } from './Feed';
 import { useIsPostSaved, toggleSavePost } from '../utils/savedPosts';
+import { VerifiedBadge } from './VerifiedBadge';
 
 const formatCount = (count: number): string => {
   if (!count || count <= 0) return '0';
@@ -558,10 +559,7 @@ export const InstagramVideoCard: React.FC<InstagramVideoCardProps> = ({
               </span>
               {/* REAL verification tick only - NEVER faked */}
               {isVerified && (
-                <i
-                  className="fas fa-check-circle text-[#1877F2] text-[13px]"
-                  title="Verified Account"
-                />
+                <VerifiedBadge size={14} className="shrink-0" />
               )}
               <span className="text-[#64748B] text-[13px]">•</span>
               <span className="text-[#94A3B8] text-[12.5px]">

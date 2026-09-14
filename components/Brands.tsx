@@ -3,6 +3,7 @@ import { User, Brand, Post as PostType, Event, LinkPreview, AudioTrack } from '.
 import { Post, CreatePostModal } from './Feed';
 import { BRAND_CATEGORIES, LOCATIONS_DATA } from '../constants';
 import { CreateEventModal } from './Events';
+import { VerifiedBadge } from './VerifiedBadge';
 
 // --- Cloudflare R2 Upload Helper (UPDATED to match App.tsx) ---
 const uploadToCloudflareR2 = async (file: File): Promise<string> => {
@@ -610,7 +611,7 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                                                         {brand.name}
                                                     </p>
                                                     {brand.is_verified && (
-                                                        <i className="fas fa-check-circle text-[#1877F2] text-sm flex-shrink-0"></i>
+                                                        <VerifiedBadge size={15} className="flex-shrink-0" />
                                                     )}
                                                 </div>
 
@@ -706,7 +707,7 @@ export const BrandsPage: React.FC<BrandsPageProps> = ({
                             <div className="flex-1 mt-2">
                                 <h1 className="text-2xl md:text-3xl font-bold text-[#F8FAFC] leading-tight mb-1 flex items-center gap-2">
                                     {activeBrand.name} 
-                                    {activeBrand.is_verified && <i className="fas fa-check-circle text-[#1877F2] text-[20px]"></i>}
+                                    {activeBrand.is_verified && <VerifiedBadge size={22} className="flex-shrink-0" />}
                                 </h1>
                                 <p className="text-[#94A3B8] font-semibold text-[15px]">
                                     {activeBrand.category} • {activeBrand.location} • {activeBrand.followers.length} followers

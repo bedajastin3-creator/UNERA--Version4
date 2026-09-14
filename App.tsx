@@ -4150,6 +4150,38 @@ const handleMusicShareComplete = useCallback((destination: string, data?: any, t
     }
   }, [currentUser]);
 
+  const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
+
+  // Load more notifications (previous notifications)
+  const loadMoreNotifications = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const data = await apiFetch("/api/notifications", {
+        headers: {
+          "x-user-id": String(currentUser.id),
+        },
+      }).catch(() => []);
+
+      const list = Array.isArray(data) ? data : (data?.notifications ?? []);
+      if (Array.isArray(list) && list.length > 0) {
+        setNotifications((prev) => {
+          const prevList = Array.isArray(prev) ? prev : [];
+          const existingIds = new Set(prevList.map((n: any) => Number(n.id)));
+          const newItems = list.filter((n: any) => !existingIds.has(Number(n.id)));
+          if (newItems.length === 0) {
+            setHasMoreNotifications(false);
+            return prevList;
+          }
+          return [...prevList, ...newItems];
+        });
+      } else {
+        setHasMoreNotifications(false);
+      }
+    } catch {
+      setHasMoreNotifications(false);
+    }
+  }, [currentUser]);
+
   // Mark notifications as read
   const markNotificationsRead = async () => {
     if (!currentUser) return;
@@ -11170,6 +11202,8 @@ return (
     onOpenNotification={openNotificationTarget}
     onDeleteNotification={deleteNotification}
     onMarkAllAsRead={markAllNotificationsAsRead}
+    onLoadMore={loadMoreNotifications}
+    hasMore={hasMoreNotifications}
     stickyHeader
   />
 )}
@@ -11461,7 +11495,11 @@ return (
     groups={groups}
     brands={brands}
     chats={chats}
-    onOpenGroup={(groupId) => navigateTo('groups')}
+    onOpenGroup={(groupId) => {
+      setActiveCommentsIdentity(null);
+      setCommentPostSnapshot(null);
+      openGroup(groupId);
+    }}
     onRSVP={onRSVPEvent}
     onEventClick={(eventId) => {
       setActiveEventId(eventId);

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { Song, AudioTrack, User, ReactionType } from '../types';
+import { VerifiedBadge } from './VerifiedBadge';
 import {
   getCachedComments,
   setCachedComments,
@@ -391,7 +392,7 @@ const MusicFeedCard: React.FC<{
             ) : null}
             <span className="text-[#94A3B8] text-sm truncate inline-flex items-center gap-1">
               {artistName}
-              {verified ? <i className="fas fa-check-circle text-[#1877F2] text-[10px]"></i> : null}
+              {verified ? <VerifiedBadge size={12} className="shrink-0" /> : null}
             </span>
           </button>
         </div>
@@ -1826,7 +1827,7 @@ useEffect(() => {
                   <div className="flex items-center gap-1.5">
                     <span className="text-[#F8FAFC] text-sm font-semibold">{displayName}</span>
                     {displayUser?.isVerified && (
-                      <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>
+                      <VerifiedBadge size={14} className="shrink-0" />
                     )}
                   </div>
                   <span className="text-[#64748B] text-xs">• {userRole}</span>
@@ -1987,7 +1988,7 @@ useEffect(() => {
                   <span className="text-[#94A3B8] text-xs truncate flex items-center gap-1">
                     {displayName}
                     {displayUser?.isVerified && (
-                      <i className="fas fa-check-circle text-[9px] text-[#1877F2]"></i>
+                      <VerifiedBadge size={12} className="shrink-0" />
                     )}
                   </span>
                 </div>

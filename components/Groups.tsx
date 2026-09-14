@@ -14,6 +14,7 @@ import {
 } from './Feed';
 import { CreateEventModal } from './Events';
 import { SavePostButton } from './SavePostButton';
+import { VerifiedBadge } from './VerifiedBadge';
 
 
 // ==================== NATIVE APP DETECTION ====================
@@ -655,7 +656,7 @@ const RecruitmentPost: React.FC<any> = (props) => {
           <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={() => onProfileClick(author.id)}>
             <img src={avatarFrom(author)} alt="" className="w-10 h-10 rounded-full object-cover border border-[#1E293B]" />
             <div className="min-w-0">
-              <div className="flex items-center gap-1 flex-wrap"><h4 className="font-bold text-[#F8FAFC] text-[18.5px] hover:underline truncate">{author.name || 'User'}</h4>{author.is_verified && (<i className="fas fa-check-circle text-[#1877F2] text-[13px]"></i>)}</div>
+              <div className="flex items-center gap-1.5 flex-wrap"><h4 className="font-bold text-[#F8FAFC] text-[18.5px] hover:underline truncate">{author.name || 'User'}</h4>{author.is_verified && (<VerifiedBadge size={15} className="shrink-0" />)}</div>
               <div className="flex items-center gap-1.5 text-[#94A3B8] text-[13px]"><span>{createdAtLabel}</span><span>•</span><i className="fas fa-briefcase text-[12px]"></i><span>Recruitment</span></div>
             </div>
           </div>
@@ -819,7 +820,7 @@ const BuySellPost: React.FC<any> = (props) => {
           <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={() => onProfileClick(author.id)}>
             <img src={avatarFrom(author)} alt="" className="w-10 h-10 rounded-full object-cover border border-[#1E293B]" />
             <div className="min-w-0">
-              <div className="flex items-center gap-1 flex-wrap"><h4 className="font-bold text-[#F8FAFC] text-[18.5px] hover:underline truncate">{author.name || 'User'}</h4>{author.is_verified && (<i className="fas fa-check-circle text-[#1877F2] text-[13px]"></i>)}</div>
+              <div className="flex items-center gap-1.5 flex-wrap"><h4 className="font-bold text-[#F8FAFC] text-[18.5px] hover:underline truncate">{author.name || 'User'}</h4>{author.is_verified && (<VerifiedBadge size={15} className="shrink-0" />)}</div>
               <div className="flex items-center gap-1.5 text-[#94A3B8] text-[13px]"><span>{createdAtLabel}</span><span>•</span><i className="fas fa-store text-[12px]"></i><span>Marketplace</span></div>
             </div>
           </div>
@@ -962,7 +963,7 @@ const GeneralGroupPost: React.FC<any> = ({
           <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={() => onProfileClick(a.id)}>
             <img src={avatarFrom(a)} alt="" className="w-10 h-10 rounded-full object-cover border border-[#1E293B]" />
             <div className="min-w-0">
-              <div className="flex items-center gap-1 flex-wrap"><h4 className="font-bold text-[#F8FAFC] text-[18.5px] hover:underline truncate">{a.name || 'User'}</h4>{a.is_verified && (<i className="fas fa-check-circle text-[#1877F2] text-[13px]"></i>)}</div>
+              <div className="flex items-center gap-1.5 flex-wrap"><h4 className="font-bold text-[#F8FAFC] text-[18.5px] hover:underline truncate">{a.name || 'User'}</h4>{a.is_verified && (<VerifiedBadge size={15} className="shrink-0" />)}</div>
               <div className="flex items-center gap-1.5 text-[#94A3B8] text-[13px]"><span>{createdAtLabel}</span><span>•</span><i className="fas fa-users text-[12px]"></i><span>Group Post</span></div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useContext, useCallback } 
 import { User, Post as PostType, ReactionType, Reel, AudioTrack, Product, Group, Brand } from '../types';
 import { ChatsList } from './ChatsList';
 import { MarketplaceContext } from '../App';
+import { VerifiedBadge } from './VerifiedBadge';
 
 // Import from Feed.tsx
 import {
@@ -1748,7 +1749,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   <h1 className="text-[28px] md:text-[32px] leading-tight font-extrabold text-[#F8FAFC] flex items-center gap-2 truncate">
                     {safeStringHelper((user as any).name, "User")}
                     {(user as any).is_verified && (
-                      <i className="fas fa-check-circle text-[#1877F2] text-[19px] flex-shrink-0"></i>
+                      <VerifiedBadge size={22} className="flex-shrink-0" />
                     )}
                   </h1>
                   
