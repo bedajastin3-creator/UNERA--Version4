@@ -667,9 +667,9 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* RIGHT: Search, Notifications (Red Badge), Profile / Login (Music and Video hidden) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            {/* 1. Search */}
+          {/* RIGHT: Search, Notifications (Carrot Orange Badge), Profile / Login */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            {/* 1. Premium Top Search Button */}
             <button
               onClick={() => {
                 if (onSearchClick) {
@@ -678,14 +678,14 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowSearchOverlay(true);
                 }
               }}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center transition-colors flex-shrink-0 focus:outline-none"
+              className="w-10 h-10 rounded-full bg-[#1E293B] hover:bg-[#334155] active:bg-[#334155]/90 active:scale-95 border border-[#334155]/50 text-[#E2E8F0] hover:text-white flex items-center justify-center transition-all duration-150 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#F97316]/40 shadow-sm shadow-black/30 group"
               aria-label="Search"
               title="Search"
             >
-              <i className="fas fa-search text-[15px]"></i>
+              <i className="fas fa-search text-[15px] text-[#94A3B8] group-hover:text-white group-hover:scale-105 transition-all"></i>
             </button>
 
-            {/* 2. Notifications (Red number badge) */}
+            {/* 2. Premium Notification Button */}
             <button
               onClick={() => {
                 if (onNotificationClick) {
@@ -694,18 +694,18 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowNotifications((prev) => !prev);
                 }
               }}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border transition-colors flex items-center justify-center relative focus:outline-none ${
+              className={`w-10 h-10 rounded-full border transition-all duration-150 flex items-center justify-center relative flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#F97316]/40 shadow-sm shadow-black/30 active:scale-95 group ${
                 showNotifications || activeTab === 'notifications'
-                  ? 'bg-[#1E293B] border-[#1877F2] text-[#1877F2]'
-                  : 'bg-[#0F172A] hover:bg-[#1E293B] border-[#1E293B] text-[#94A3B8] hover:text-[#F8FAFC]'
+                  ? 'bg-[#1E293B] border-[#F97316] text-[#F97316] shadow-[0_0_12px_rgba(249,115,22,0.25)]'
+                  : 'bg-[#1E293B] hover:bg-[#334155] active:bg-[#334155]/90 border-[#334155]/50 text-[#94A3B8] hover:text-white'
               }`}
               aria-label="Notifications"
               title="Notifications"
             >
-              <i className="fas fa-bell text-[15px]"></i>
+              <i className="fas fa-bell text-[15px] group-hover:scale-105 transition-transform"></i>
               {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-[#E41E3F] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md ring-2 ring-[#0B1120]">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                <span className="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1.5 bg-[#F97316] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-[#0B1120] leading-none pointer-events-none select-none tracking-tight">
+                  {unreadCount > 99 ? '99+' : unreadCount > 15 ? '15+' : unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
@@ -714,7 +714,7 @@ export const Header: React.FC<HeaderProps> = ({
             {currentUser ? (
               <button
                 onClick={() => setShowProfileMenu((prev) => !prev)}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-[#1E293B] hover:border-[#1877F2] transition-all flex items-center justify-center ml-0.5 focus:outline-none"
+                className="w-10 h-10 rounded-full overflow-hidden border border-[#334155]/60 hover:border-[#F97316] transition-all flex items-center justify-center ml-0.5 focus:outline-none focus:ring-2 focus:ring-[#F97316]/40 active:scale-95 shadow-sm shadow-black/30"
                 aria-label="User Profile"
               >
                 <img
@@ -765,7 +765,7 @@ export const Header: React.FC<HeaderProps> = ({
                   placeholder="Search names, groups, marketplace..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full bg-[#0F172A] border border-[#1E293B] rounded-xl py-2.5 pl-11 pr-11 text-[#F8FAFC] placeholder-[#64748B] outline-none focus:border-[#1877F2] transition-colors text-sm"
+                  className="w-full bg-[#0F172A] border border-[#1E293B] rounded-xl py-2.5 pl-11 pr-11 text-[#F8FAFC] placeholder-[#64748B] outline-none focus:border-[#F97316] transition-colors text-sm"
                 />
                 {searchQuery && (
                   <button
@@ -790,7 +790,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => setActiveSearchFilter('all')}
                   className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                     activeSearchFilter === 'all'
-                      ? 'bg-[#1877F2] text-white'
+                      ? 'bg-[#F97316] text-white shadow-sm'
                       : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
                   }`}
                 >
@@ -800,7 +800,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => setActiveSearchFilter('people')}
                   className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                     activeSearchFilter === 'people'
-                      ? 'bg-[#1877F2] text-white'
+                      ? 'bg-[#F97316] text-white shadow-sm'
                       : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
                   }`}
                 >
@@ -810,7 +810,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => setActiveSearchFilter('groups')}
                   className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                     activeSearchFilter === 'groups'
-                      ? 'bg-[#1877F2] text-white'
+                      ? 'bg-[#F97316] text-white shadow-sm'
                       : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
                   }`}
                 >
@@ -820,7 +820,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => setActiveSearchFilter('more')}
                   className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                     activeSearchFilter === 'more'
-                      ? 'bg-[#1877F2] text-white'
+                      ? 'bg-[#F97316] text-white shadow-sm'
                       : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
                   }`}
                 >

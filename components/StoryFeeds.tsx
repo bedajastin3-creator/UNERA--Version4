@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   ArrowLeft,
   Plus,
@@ -93,6 +93,15 @@ export default function StoryFeeds({
   const [viewMode, setViewMode] = useState<ViewMode>('stream');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCreatorId, setSelectedCreatorId] = useState<number | null>(null);
+  const [activePlayingStoryId, setActivePlayingStoryId] = useState<number | null>(null);
+
+  const handlePlayVideo = useCallback((storyId: number) => {
+    setActivePlayingStoryId(storyId);
+  }, []);
+
+  const handlePauseVideo = useCallback((storyId: number) => {
+    setActivePlayingStoryId((curr) => (curr === storyId ? null : curr));
+  }, []);
 
   // Auto-scroll to focused story if navigated from Feed
   useEffect(() => {
@@ -427,6 +436,9 @@ export default function StoryFeeds({
                 story={story}
                 currentUser={currentUser}
                 users={users}
+                activePlayingStoryId={activePlayingStoryId}
+                onPlayVideo={handlePlayVideo}
+                onPauseVideo={handlePauseVideo}
                 onViewStory={onViewStory}
                 onProfileClick={onProfileClick}
                 onReact={onReact}
@@ -475,6 +487,9 @@ interface StoryFeedCardProps {
   story: Story;
   currentUser: User | null;
   users?: User[];
+  activePlayingStoryId?: number | null;
+  onPlayVideo?: (storyId: number) => void;
+  onPauseVideo?: (storyId: number) => void;
   onViewStory?: (storyId: number) => void;
   onProfileClick?: (id: number) => void;
   onReact?: (storyId: number, type: string) => void | Promise<void>;
@@ -492,6 +507,9 @@ function StoryFeedCard({
   story,
   currentUser,
   users = [],
+  activePlayingStoryId,
+  onPlayVideo,
+  onPauseVideo,
   onViewStory,
   onProfileClick,
   onReact,
@@ -539,11 +557,72 @@ function StoryFeedCard({
   const isImage = storyType === 'image';
   const isText = storyType === 'text';
 
-  // Video state
+  // Video and card refs
+  const cardRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
+
+  // Ensure only ONE video plays at any time:
+  // When another video becomes active, pause this one immediately
+  useEffect(() => {
+    if (activePlayingStoryId !== story.id && isPlaying) {
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+      setIsPlaying(false);
+    }
+  }, [activePlayingStoryId, story.id, isPlaying]);
+
+  // Pause video automatically when user scrolls past or away from this post
+  useEffect(() => {
+    if (!isVideo) return;
+    const cardEl = cardRef.current;
+    if (!cardEl) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+
+        // If card scrolls out or is less than 50% visible, pause playback
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
+          if (videoRef.current && !videoRef.current.paused) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+            onPauseVideo?.(story.id);
+          }
+        }
+      },
+      {
+        threshold: [0, 0.25, 0.5, 0.75, 1.0],
+      }
+    );
+
+    observer.observe(cardEl);
+    return () => {
+      observer.disconnect();
+    };
+  }, [isVideo, story.id, onPauseVideo]);
+
+  // Pause video if tab becomes hidden or on unmount
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+        onPauseVideo?.(story.id);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+    };
+  }, [story.id, onPauseVideo]);
 
   // Reaction state
   const [currentReaction, setCurrentReaction] = useState<string | null>(
@@ -576,9 +655,18 @@ function StoryFeedCard({
     if (isPlaying) {
       videoRef.current.pause();
       setIsPlaying(false);
+      onPauseVideo?.(story.id);
     } else {
-      videoRef.current.play().catch(() => {});
-      setIsPlaying(true);
+      // Coordinate single-video playback: notify parent to pause others
+      onPlayVideo?.(story.id);
+      videoRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.warn('Video play prevented or failed:', err);
+        });
     }
   };
 
@@ -635,6 +723,7 @@ function StoryFeedCard({
 
   return (
     <article
+      ref={cardRef}
       id={`story-card-${story.id}`}
       className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18] sm:rounded-2xl sm:border sm:border-[#1E293B] sm:mb-6 overflow-hidden shadow-xl transition-all"
     >
@@ -862,6 +951,17 @@ function StoryFeedCard({
               loop
               muted={isMuted}
               onTimeUpdate={handleVideoTimeUpdate}
+              onPlay={() => {
+                onPlayVideo?.(story.id);
+                setIsPlaying(true);
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+              }}
+              onEnded={() => {
+                setIsPlaying(false);
+                onPauseVideo?.(story.id);
+              }}
               onClick={handleTogglePlay}
             />
 

@@ -158,11 +158,11 @@ const getNotificationBadge = (n: Notification) => {
   }
 
   if (type.includes("follow")) {
-    return { kind: "icon" as const, value: "fas fa-user-plus", bg: "#1877F2" };
+    return { kind: "icon" as const, value: "fas fa-user-plus", bg: "#F97316" };
   }
 
   if (type.includes("share")) {
-    return { kind: "icon" as const, value: "fas fa-share", bg: "#1877F2" };
+    return { kind: "icon" as const, value: "fas fa-share", bg: "#F97316" };
   }
 
   if (type.includes("birthday")) {
@@ -170,34 +170,34 @@ const getNotificationBadge = (n: Notification) => {
   }
 
   if (entityType === "song") {
-    return { kind: "icon" as const, value: "fas fa-music", bg: "#1877F2" };
+    return { kind: "icon" as const, value: "fas fa-music", bg: "#F97316" };
   }
 
   if (entityType === "podcast") {
-    return { kind: "icon" as const, value: "fas fa-microphone", bg: "#2563EB" };
+    return { kind: "icon" as const, value: "fas fa-microphone", bg: "#EA580C" };
   }
 
   if (entityType === "story") {
-    return { kind: "icon" as const, value: "fas fa-bolt", bg: "#38BDF8" };
+    return { kind: "icon" as const, value: "fas fa-bolt", bg: "#FB923C" };
   }
 
   if (entityType === "event" || type === "event") {
-    return { kind: "icon" as const, value: "fas fa-calendar-alt", bg: "#2563EB" };
+    return { kind: "icon" as const, value: "fas fa-calendar-alt", bg: "#EA580C" };
   }
 
   if (entityType === "group_post" || entityType === "group" || type.includes("group")) {
-    return { kind: "icon" as const, value: "fas fa-users", bg: "#38BDF8" };
+    return { kind: "icon" as const, value: "fas fa-users", bg: "#FB923C" };
   }
 
   if (entityType === "product" || type.includes("product") || type.includes("marketplace")) {
-    return { kind: "icon" as const, value: "fas fa-shopping-bag", bg: "#1877F2" };
+    return { kind: "icon" as const, value: "fas fa-shopping-bag", bg: "#F97316" };
   }
 
   if (entityType === "reel") {
     return { kind: "icon" as const, value: "fas fa-video", bg: "#F43F5E" };
   }
 
-  return { kind: "icon" as const, value: "fas fa-bell", bg: "#1877F2" };
+  return { kind: "icon" as const, value: "fas fa-bell", bg: "#F97316" };
 };
 
 // UPDATED: New message builder with full content type support
@@ -704,7 +704,7 @@ export const NotificationsPage: React.FC<Props> = ({
         key={notificationId}
         className={`flex items-start gap-3.5 p-3.5 sm:p-4 border-b border-[#1E293B] last:border-b-0 transition-colors ${
           isUnread
-            ? "bg-[#1877F2]/[0.08] hover:bg-[#1877F2]/[0.12] border-l-4 border-l-[#1877F2]"
+            ? "bg-[#F97316]/[0.08] hover:bg-[#F97316]/[0.12] border-l-4 border-l-[#F97316]"
             : "hover:bg-[#141E33] border-l-4 border-l-transparent"
         }`}
       >
@@ -751,7 +751,7 @@ export const NotificationsPage: React.FC<Props> = ({
                 e.stopPropagation();
                 onProfileClick(actor?.id || 0);
               }}
-              className="font-bold text-[#F8FAFC] hover:text-[#1877F2] transition-colors cursor-pointer"
+              className="font-bold text-[#F8FAFC] hover:text-[#F97316] transition-colors cursor-pointer"
             >
               {actorName}
             </span>
@@ -768,7 +768,7 @@ export const NotificationsPage: React.FC<Props> = ({
             </span>
 
             {messageParts.cta && (
-              <span className="font-bold text-[#38BDF8]">
+              <span className="font-bold text-[#FB923C]">
                 {" "}
                 {messageParts.cta}
               </span>
@@ -786,7 +786,7 @@ export const NotificationsPage: React.FC<Props> = ({
           {(previewText || previewImage) && (
             <div
               onClick={() => handleOpenNotification(n)}
-              className="mt-2.5 flex items-center gap-2.5 max-w-full bg-[#070D1D] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#1877F2]/40 rounded-xl p-2.5 text-[#94A3B8] text-xs transition-colors cursor-pointer"
+              className="mt-2.5 flex items-center gap-2.5 max-w-full bg-[#070D1D] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#F97316]/40 rounded-xl p-2.5 text-[#94A3B8] text-xs transition-colors cursor-pointer"
             >
               {previewImage && (
                 <img
@@ -808,7 +808,7 @@ export const NotificationsPage: React.FC<Props> = ({
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             <span
               className={`text-xs ${
-                isUnread ? "text-[#1877F2] font-semibold" : "text-[#64748B] font-medium"
+                isUnread ? "text-[#F97316] font-semibold" : "text-[#64748B] font-medium"
               }`}
             >
               {formatTimestamp(displayTime)}
@@ -819,7 +819,7 @@ export const NotificationsPage: React.FC<Props> = ({
             {isUnread && (
               <span
                 aria-hidden
-                className="w-2 h-2 rounded-full bg-[#1877F2] shadow-[0_0_8px_rgba(24,119,242,0.6)] inline-block flex-shrink-0"
+                className="w-2 h-2 rounded-full bg-[#F97316] shadow-[0_0_8px_rgba(249,115,22,0.8)] inline-block flex-shrink-0"
               />
             )}
           </div>
@@ -896,7 +896,7 @@ export const NotificationsPage: React.FC<Props> = ({
             className={`h-9 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
               isProcessing || unreadCount === 0
                 ? "bg-[#0F172A] border-[#1E293B] text-[#64748B] opacity-50 cursor-not-allowed"
-                : "bg-[#1877F2] hover:bg-[#166FE5] border-[#1877F2] text-white shadow-sm cursor-pointer"
+                : "bg-[#F97316] hover:bg-[#EA580C] border-[#F97316] text-white shadow-sm cursor-pointer"
             }`}
           >
             <i className="fas fa-check text-xs" />
@@ -911,7 +911,7 @@ export const NotificationsPage: React.FC<Props> = ({
             <div className="px-4 py-3 border-b border-[#1E293B] bg-[#0B1120]/50 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">New</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#1877F2]/15 text-[#1877F2] border border-[#1877F2]/30">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#F97316]/15 text-[#F97316] border border-[#F97316]/30">
                   {newCount}
                 </span>
               </div>
@@ -937,7 +937,7 @@ export const NotificationsPage: React.FC<Props> = ({
               <div className="p-3 bg-[#0B1120]/30 border-t border-[#1E293B]">
                 <button
                   onClick={handleLoadMoreEarlier}
-                  className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#1877F2]/50 text-[#F8FAFC] text-sm font-semibold transition-all shadow-sm"
+                  className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#F97316]/50 text-[#F8FAFC] text-sm font-semibold transition-all shadow-sm"
                 >
                   See previous notifications
                 </button>
@@ -948,7 +948,7 @@ export const NotificationsPage: React.FC<Props> = ({
 
         {localNotifications.length === 0 && (
           <div className="bg-[#0F172A] border border-[#1E293B] rounded-2xl p-12 text-center text-[#94A3B8]">
-            <div className="w-16 h-16 rounded-full bg-[#141E33] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-[#1877F2] text-2xl">
+            <div className="w-16 h-16 rounded-full bg-[#141E33] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-[#F97316] text-2xl">
               <i className="fas fa-bell-slash" />
             </div>
             <p className="text-base font-semibold text-[#F8FAFC]">No notifications yet</p>
@@ -962,7 +962,7 @@ export const NotificationsPage: React.FC<Props> = ({
           className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xl border flex items-center gap-2 ${
             toast.type === "error"
               ? "bg-rose-950/90 border-rose-800 text-rose-200"
-              : "bg-[#0B1120] border-[#1877F2] text-[#F8FAFC]"
+              : "bg-[#0B1120] border-[#F97316] text-[#F8FAFC]"
           }`}
         >
           {toast.text}

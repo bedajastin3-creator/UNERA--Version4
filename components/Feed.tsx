@@ -8084,34 +8084,42 @@ export const CommentsSheet = memo(
   };
 
   return (
-    <div className="comments-sheet-root flex flex-col bg-[#050B18]">
-      {/* Header */}
-      <div className="p-4 border-b border-[#1E293B] flex items-center justify-between bg-[#0B1120] sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="w-10 h-10 rounded-full hover:bg-[#1E293B] flex items-center justify-center transition-colors"
-            onClick={onClose}
-            aria-label="Back"
-          >
-            <i className="fas fa-arrow-left text-[#E4E6EB] text-xl"></i>
-          </button>
-          <div className="text-[#E4E6EB] font-bold text-[22px]">Post</div>
+    <div
+      className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-end justify-center transition-opacity"
+      onClick={onClose}
+    >
+      <div
+        className="comments-sheet-modal w-full max-w-2xl h-[78vh] sm:h-[72vh] bg-[#0B1120] rounded-t-3xl border-t border-x border-[#1E293B] shadow-2xl flex flex-col overflow-hidden animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Grab Handle */}
+        <div className="pt-2.5 pb-1 flex justify-center bg-[#0B1120] cursor-grab">
+          <div className="w-12 h-1.5 rounded-full bg-[#334155]/80 hover:bg-[#475569] transition-colors"></div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-[#B0B3B8] text-[16px]">
-            {formatCount(comments.length)} discussions
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#0B1120] sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#1E293B] flex items-center justify-center text-[#38BDF8]">
+              <i className="far fa-comments text-sm" />
+            </div>
+            <div>
+              <div className="text-[#E4E6EB] font-bold text-[16px] leading-tight">Discussions</div>
+              <div className="text-[#94A3B8] text-[12px]">{formatCount(comments.length)} comments</div>
+            </div>
           </div>
-          <button
-            type="button"
-            className="text-[#1877F2] font-bold text-[17px] hover:underline"
-            onClick={onClose}
-          >
-            See less
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="w-8 h-8 rounded-full bg-[#1E293B]/70 hover:bg-[#1E293B] text-[#94A3B8] hover:text-white flex items-center justify-center transition-colors text-sm"
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* Scrollable Content */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth bg-[#050B18]">
@@ -8393,6 +8401,7 @@ export const CommentsSheet = memo(
         </form>
       </div>
     </div>
+  </div>
   );
 },
 (prev, next) => isSameFeedItem(prev.post, next.post) && prev.currentUser?.id === next.currentUser?.id);
@@ -9067,15 +9076,10 @@ const injectGlobalStyles = () => {
         overflow: hidden;
       }
       
-      /* Comments Sheet Fix - prevents blank screen */
-      .comments-sheet-root {
-        position: fixed !important;
-        inset: 0 !important;
-        z-index: 99999 !important;
-        width: 100vw !important;
-        height: 100dvh !important;
-        background: #050B18 !important;
-        overflow: hidden !important;
+      /* Comments Sheet Styling */
+      .comments-sheet-modal {
+        position: relative !important;
+        background: #0B1120 !important;
       }
     `;
     document.head.appendChild(style);
