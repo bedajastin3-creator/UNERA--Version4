@@ -1,3 +1,4 @@
+// functions/api/group-posts.ts
 import type { PagesFunction } from "@cloudflare/workers-types";
 import { cors, ok, bad, server } from "./_cors";
 import { withNewContentId } from "../utils/ids";
@@ -279,6 +280,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       if (!condition) return bad("condition is required for buy_sell posts");
     }
 
+    // ---- Allocate hard, globally-unique content ID + insert ----
     const { id: post_id } = await withNewContentId(async (id) => {
       return await env.DB.prepare(
         `INSERT INTO group_posts (
