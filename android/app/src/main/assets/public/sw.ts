@@ -127,7 +127,7 @@ async function handleNavigationRequest(request: Request) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Offline - Unera</title>
         <style>
-          body{background:#18191A;color:#E4E6EB;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}
+          body{background:#050B18;color:#F8FAFC;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}
           .icon{font-size:4rem;margin-bottom:1rem;color:#1877F2;}
           button{background:#1877F2;color:white;border:none;padding:0.8rem 2rem;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;margin-top:1rem;}
         </style>

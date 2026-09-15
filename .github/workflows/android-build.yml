@@ -104,7 +104,7 @@ jobs:
       # BUILD DEBUG APK (Always generated for instant testing)
       # -------------------------------------------------------------
       - name: 11. Build Debug APK
-        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug-apk' || github.event.inputs.build_type == ''
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug-apk' || !github.event.inputs.build_type
         working-directory: ./android
         env:
           VERSION_CODE: ${{ env.VERSION_CODE }}
@@ -112,7 +112,7 @@ jobs:
         run: ./gradlew assembleDebug --stacktrace
 
       - name: 12. Upload Debug APK Artifact
-        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug-apk' || github.event.inputs.build_type == ''
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug-apk' || !github.event.inputs.build_type
         uses: actions/upload-artifact@v4
         with:
           name: UNERA-Debug-APK-v${{ env.VERSION_NAME }}
@@ -123,7 +123,7 @@ jobs:
       # BUILD RELEASE APK
       # -------------------------------------------------------------
       - name: 13. Build Release APK
-        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-apk'
+        if: (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-apk')) || startsWith(github.ref, 'refs/tags/v')
         working-directory: ./android
         env:
           VERSION_CODE: ${{ env.VERSION_CODE }}
@@ -135,7 +135,7 @@ jobs:
         run: ./gradlew assembleRelease --stacktrace
 
       - name: 14. Upload Release APK Artifact
-        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-apk'
+        if: (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-apk')) || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: UNERA-Release-APK-v${{ env.VERSION_NAME }}
@@ -146,7 +146,7 @@ jobs:
       # BUILD GOOGLE PLAY BUNDLE (AAB)
       # -------------------------------------------------------------
       - name: 15. Build Google Play Release AAB
-        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-aab'
+        if: (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-aab')) || startsWith(github.ref, 'refs/tags/v')
         working-directory: ./android
         env:
           VERSION_CODE: ${{ env.VERSION_CODE }}
@@ -158,7 +158,7 @@ jobs:
         run: ./gradlew bundleRelease --stacktrace
 
       - name: 16. Upload Google Play AAB Artifact
-        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-aab'
+        if: (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release-aab')) || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: UNERA-GooglePlay-AAB-v${{ env.VERSION_NAME }}

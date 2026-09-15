@@ -34,7 +34,7 @@ body{
     width:100%;
     height:100%;
 
-    background:#18191A;
+    background:#050B18;
     color:#FFFFFF;
 
     font-family:
