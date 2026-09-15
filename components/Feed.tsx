@@ -28,7 +28,6 @@ import { performPostAction } from '../postActionRegistry';
 import { PostMenu } from './Post/PostMenu';
 import { buildImageUploadBundle } from '../utils/imageCompression';
 import { resolveApiUrl } from '../utils/api';
-import { VerifiedBadge } from './VerifiedBadge';
 import {
   getCachedComments,
   setCachedComments,
@@ -2387,7 +2386,12 @@ export const PeopleYouMayKnowGrid = memo(
                       >
                         <span className="truncate">{user.name}</span>
                         {user.is_verified && (
-                          <VerifiedBadge size={14} className="shrink-0" />
+                          <span
+                            title="Verified"
+                            className="inline-flex items-center justify-center text-[#1877F2] shrink-0"
+                          >
+                            <i className="fas fa-check-circle text-[14px]" />
+                          </span>
                         )}
                       </button>
                     </div>
@@ -3937,7 +3941,6 @@ const GroupPostHeader = memo(
     post,
     group,
     author,
-    groups = [],
     onOpenGroup,
     onOpenProfile,
     onOpenMenu,
@@ -3945,36 +3948,17 @@ const GroupPostHeader = memo(
     post: any;
     group?: any;
     author?: any;
-    groups?: any[];
     onOpenGroup?: (groupId: number) => void;
     onOpenProfile?: (userId: number) => void;
     onOpenMenu?: () => void;
   }) => {
-    const rawGroupId = Number(
-      group?.id ||
-      post?.group_id ||
-      post?.groupId ||
-      post?.meta?.group_id ||
-      post?.meta?.groupId ||
-      0
-    );
-    const rawGroupName = safeStr(
-      group?.name ||
-      post?.group_name ||
-      post?.groupName ||
-      post?.meta?.group_name ||
-      post?.meta?.groupName
-    );
-    const matchedGroup = group || (rawGroupId ? groups.find((g: any) => g.id === rawGroupId) : (rawGroupName ? groups.find((g: any) => g.name?.toLowerCase() === rawGroupName.toLowerCase()) : undefined));
-    const groupId = rawGroupId || matchedGroup?.id || 0;
-    const groupName = rawGroupName || matchedGroup?.name || 'Group';
-    const isGroupVerified = Boolean(group?.is_verified || matchedGroup?.is_verified || post?.is_group_verified);
-
+    const groupName = safeStr(group?.name || post?.group_name);
+    const groupId = Number(group?.id || post?.group_id || 0);
     const userName = safeStr(author?.name || post?.name || post?.username);
     const userId = Number(author?.id || post?.user_id || 0);
     const groupImg =
       safeStr(
-        group?.profile_image || group?.avatar || group?.image || matchedGroup?.profile_image || matchedGroup?.avatar || post?.group_image
+        group?.profile_image || group?.avatar || group?.image || post?.group_image
       ) || '';
     const userImg =
       safeStr(author?.profile_image_url || author?.avatar || post?.profile_image_url) ||
@@ -3985,14 +3969,14 @@ const GroupPostHeader = memo(
       <div className="flex items-start justify-between px-3 pt-3">
         <div className="flex items-start gap-3 min-w-0">
           <button
-            className="relative shrink-0 cursor-pointer group"
+            className="relative shrink-0"
             onClick={(e) => {
               e.stopPropagation();
-              if (onOpenGroup) onOpenGroup(groupId || 0);
+              if (groupId && onOpenGroup) onOpenGroup(groupId);
             }}
             title={groupName}
           >
-            <div className="w-10 h-10 rounded-full bg-[#1E293B] overflow-hidden flex items-center justify-center border border-[#334155] group-hover:border-[#1877F2] transition-colors">
+            <div className="w-10 h-10 rounded-full bg-[#1E293B] overflow-hidden flex items-center justify-center border border-[#334155]">
               {groupImg ? (
                 <img src={groupImg} className="w-full h-full object-cover" />
               ) : (
@@ -4010,23 +3994,17 @@ const GroupPostHeader = memo(
           </button>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <button
-                className="text-left font-extrabold text-[20px] leading-[1.1] text-[#E4E6EB] truncate hover:underline cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onOpenGroup) onOpenGroup(groupId || 0);
-                }}
-                title={`Open ${groupName}`}
-              >
-                {groupName}
-              </button>
-              {isGroupVerified && (
-                <VerifiedBadge size={20} className="shrink-0" />
-              )}
-            </div>
+            <button
+              className="text-left font-extrabold text-[20px] leading-[1.1] text-[#E4E6EB] truncate hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (groupId && onOpenGroup) onOpenGroup(groupId);
+              }}
+            >
+              {groupName || 'Group'}
+            </button>
 
-            <div className="flex items-center gap-2 text-[15px] text-[#B0B3B8] min-w-0 mt-0.5">
+            <div className="flex items-center gap-2 text-[15px] text-[#B0B3B8] min-w-0">
               <button
                 className="font-semibold text-[15px] text-[#B0B3B8] hover:underline truncate"
                 onClick={(e) => {
@@ -4041,17 +4019,7 @@ const GroupPostHeader = memo(
               <span className="truncate">{timeAgo}</span>
 
               <span>·</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onOpenGroup) onOpenGroup(groupId || 0);
-                }}
-                className="hover:text-white transition-colors"
-                title="Open Group"
-              >
-                <i className="fas fa-users text-[14px]" />
-              </button>
+              <i className="fas fa-users text-[14px]" />
             </div>
           </div>
         </div>
@@ -5505,15 +5473,13 @@ export const Post = memo(
     const song = meta?.song;
     const podcast = meta?.podcast;
 
-    const rawGroupId = Number(
-      p?.group_id || p?.groupId || meta?.group_id || meta?.groupId || p?.group?.id || 0
+    const isGroupPost = !!(p?.group_id || p?.group);
+    const groupId = Number(
+      p?.group_id || p?.groupId || meta?.group_id || meta?.groupId || 0
     );
-    const rawGroupName =
-      p?.group_name || p?.groupName || meta?.group_name || meta?.groupName || p?.group?.name || '';
-    const group = p?.group || (rawGroupId ? groups?.find((g) => g.id === rawGroupId) : (rawGroupName ? groups?.find((g) => g.name?.toLowerCase() === rawGroupName.toLowerCase()) : undefined));
-    const groupId = rawGroupId || group?.id || 0;
-    const groupName = rawGroupName || group?.name || '';
-    const isGroupPost = !!(groupId || group || groupName);
+    const groupName =
+      p?.group_name || p?.groupName || meta?.group_name || meta?.groupName || '';
+    const group = p?.group || groups?.find((g) => g.id === groupId);
 
     const myReaction = p.myReaction ?? p.my_reaction ?? null;
  const likesCount = Number(p.likesCount ?? p.reactionsCount ?? p.reactions_count ?? 0);
@@ -5728,8 +5694,7 @@ export const Post = memo(
                   post={p}
                   group={group}
                   author={a}
-                  groups={groups}
-                  onOpenGroup={(id) => onOpenGroup?.(id || groupId)}
+                  onOpenGroup={(id) => onOpenGroup?.(id)}
                   onOpenProfile={(id) => onProfileClick(id)}
                 />
                 {isSponsored && (
@@ -5755,25 +5720,7 @@ export const Post = memo(
                         {a.name || a.username || 'User'}
                       </h4>
                       {a.is_verified && (
-                        <VerifiedBadge size={20} className="shrink-0" />
-                      )}
-                      {(groupName || group) && (
-                        <span className="inline-flex items-center gap-1 text-[#94A3B8] text-[15px] font-normal">
-                          <span className="mx-0.5">▶</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (onOpenGroup) onOpenGroup(groupId || group?.id || 0);
-                            }}
-                            className="font-bold text-[#F8FAFC] hover:underline cursor-pointer flex items-center gap-1"
-                          >
-                            <span className="truncate">{groupName || group?.name}</span>
-                            {(group?.is_verified || (group as any)?.verified) && (
-                              <VerifiedBadge size={18} className="shrink-0" />
-                            )}
-                          </button>
-                        </span>
+                        <i className="fas fa-check-circle text-[#1877F2] text-[15px]"></i>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 text-[#94A3B8] text-[15px]">
@@ -8077,7 +8024,10 @@ export const CommentsSheet = memo(
             >
               <span className="truncate">{a.name}</span>
               {(comment?.is_verified || authorUser?.is_verified) && (
-                <VerifiedBadge size={17} className="shrink-0" />
+                <i
+                  className="fas fa-check-circle text-[#1877F2] text-[12px] shrink-0"
+                  title="Verified"
+                />
               )}
             </div>
             <div className="text-[#E4E6EB] text-[15px] leading-[1.35] font-normal whitespace-pre-wrap break-words mt-1">
@@ -8933,7 +8883,6 @@ export const Feed = memo(({
   followLoading={followLoading?.[postAuthorId] || false}
   onViewProductFromPost={onViewProductFromPost}
   onRSVP={onRSVPEvent}
-  onOpenGroup={onOpenGroup}
   
   pushButton={showPushButton ? (
     <button
