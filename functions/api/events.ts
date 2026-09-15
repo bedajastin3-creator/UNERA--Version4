@@ -1,5 +1,6 @@
 // functions/api/events.ts
 import type { PagesFunction } from "@cloudflare/workers-types";
+import { withNewContentId } from "../utils/ids";
 
 type Env = { DB: D1Database };
 
@@ -187,14 +188,34 @@ async function handleCreateEvent(request: Request, env: Env) {
 
     const created_at = new Date().toISOString();
 
-    const ins = await env.DB.prepare(
-      `INSERT INTO events (creator_id, title, description, event_date, location, cover_url, visibility, group_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(creator_id, title, description, event_date, location, cover_url, visibility, group_id, created_at)
-      .run();
+    // ─────────────────────────────────────────────────────────
+    // Columns (10): id, creator_id, title, description, event_date,
+    //               location, cover_url, visibility, group_id, created_at
+    // Placeholders (10): ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    // Bind args (10):    id + 9 original
+    // ─────────────────────────────────────────────────────────
+    const { id } = await withNewContentId(async (id) => {
+      return await env.DB.prepare(
+        `INSERT INTO events
+           (id, creator_id, title, description, event_date,
+            location, cover_url, visibility, group_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          id,
+          creator_id,
+          title,
+          description,
+          event_date,
+          location,
+          cover_url,
+          visibility,
+          group_id,
+          created_at
+        )
+        .run();
+    });
 
-    const id = Number(ins.meta.last_row_id);
     const row = await env.DB.prepare(`SELECT * FROM events WHERE id=?`).bind(id).first();
 
     return json({
@@ -233,14 +254,30 @@ async function handleCreateGroupEvent(request: Request, env: Env, groupId: numbe
 
     const created_at = new Date().toISOString();
 
-    const ins = await env.DB.prepare(
-      `INSERT INTO events (creator_id, title, description, event_date, location, cover_url, visibility, group_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(creator_id, title, description, event_date, location, cover_url, visibility, groupId, created_at)
-      .run();
+    // Same column/placeholder arithmetic as handleCreateEvent:
+    // 10 columns / 10 placeholders / 10 bind args
+    const { id } = await withNewContentId(async (id) => {
+      return await env.DB.prepare(
+        `INSERT INTO events
+           (id, creator_id, title, description, event_date,
+            location, cover_url, visibility, group_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          id,
+          creator_id,
+          title,
+          description,
+          event_date,
+          location,
+          cover_url,
+          visibility,
+          groupId,
+          created_at
+        )
+        .run();
+    });
 
-    const id = Number(ins.meta.last_row_id);
     const row = await env.DB.prepare(`SELECT * FROM events WHERE id=?`).bind(id).first();
 
     return json({
