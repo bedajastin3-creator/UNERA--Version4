@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Story, User, ReactionType } from '../types';
 import { ReactionButton } from './Feed';
+import { VerifiedBadge } from './VerifiedBadge';
 
 interface StoryFeedsProps {
   currentUser: User | null;
@@ -271,9 +272,9 @@ export default function StoryFeeds({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-5">
+      <div className={`w-full mx-auto ${viewMode === 'stream' ? 'max-w-[680px] px-0 py-2 space-y-4' : 'max-w-4xl px-2 sm:px-4 py-4 sm:py-6 space-y-5'}`}>
         {/* Top Story Creators Carousel */}
-        <div className="bg-[#0B1120] border border-[#1E293B] rounded-2xl p-3 sm:p-4 shadow-sm overflow-hidden">
+        <div className={`bg-[#0B1120] border border-[#1E293B] rounded-2xl p-3 sm:p-4 shadow-sm overflow-hidden ${viewMode === 'stream' ? 'mx-3 sm:mx-0' : ''}`}>
           <div className="flex items-center justify-between mb-3 px-1">
             <span className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-[#38BDF8]" />
@@ -380,7 +381,7 @@ export default function StoryFeeds({
         </div>
 
         {/* Clean Search Bar (Categories & Sort completely removed) */}
-        <div className="bg-[#0B1120] border border-[#1E293B] rounded-2xl p-2.5 sm:p-3 shadow-sm">
+        <div className={`bg-[#0B1120] border border-[#1E293B] rounded-2xl p-2.5 sm:p-3 shadow-sm ${viewMode === 'stream' ? 'mx-3 sm:mx-0' : ''}`}>
           <div className="flex items-center gap-2 bg-[#050B18] border border-[#1E293B] rounded-xl px-3 py-2 text-sm focus-within:border-[#1877F2] transition-colors">
             <Search className="w-4 h-4 text-[#64748B]" />
             <input
@@ -429,7 +430,7 @@ export default function StoryFeeds({
           </div>
         ) : viewMode === 'stream' ? (
           /* Stream Mode (Like Feeds.tsx) */
-          <div className="space-y-6">
+          <div className="w-full space-y-0">
             {filteredStories.map((story) => (
               <StoryFeedCard
                 key={`story-feed-card-${story.id}`}
@@ -725,7 +726,7 @@ function StoryFeedCard({
     <article
       ref={cardRef}
       id={`story-card-${story.id}`}
-      className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18] sm:rounded-2xl sm:border sm:border-[#1E293B] sm:mb-6 overflow-hidden shadow-xl transition-all"
+      className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18] overflow-hidden shadow-xl transition-all"
     >
       {/* Top Header Row (Author & Context) */}
       <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 border-b border-[#1E293B]/60">
@@ -749,16 +750,12 @@ function StoryFeedCard({
               <button
                 type="button"
                 onClick={() => onProfileClick?.(authorId)}
-                className="text-white font-bold text-sm sm:text-base hover:text-[#38BDF8] transition-colors truncate text-left"
+                className="text-[#F8FAFC] font-bold text-[21px] hover:text-[#38BDF8] transition-colors truncate text-left inline-flex items-center gap-1.5"
               >
-                {authorName}
+                <span>{authorName}</span>
+                {isVerified && <VerifiedBadge size={21} className="shrink-0" />}
               </button>
-              {isVerified && (
-                <span className="w-4 h-4 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[10px]">
-                  ✓
-                </span>
-              )}
-              <span className="text-xs text-[#64748B] hidden xs:inline">
+              <span className="text-[14px] text-[#64748B] hidden xs:inline">
                 @{authorUsername}
               </span>
             </div>
@@ -1055,7 +1052,7 @@ function StoryFeedCard({
         <div className="flex items-center gap-4">
           <button
             type="button"
-            className="hover:underline cursor-pointer text-[#94A3B8] hover:text-[#F8FAFC] text-[13px] transition-colors"
+            className="hover:underline cursor-pointer text-[#CBD5E1] hover:text-[#F8FAFC] text-[20.5px] font-semibold transition-colors"
             onClick={() => onComment?.(story.id)}
           >
             {commentsCount} Discussions
@@ -1235,7 +1232,7 @@ function StoryGridCard({
           />
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-white text-xs font-bold truncate">
+          <span className="text-white text-[15px] font-bold truncate drop-shadow-sm">
             {authorName}
           </span>
           <span className="text-[10px] text-white/70 truncate">

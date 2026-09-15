@@ -24,6 +24,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { LOCATIONS_DATA, MARKETPLACE_COUNTRIES } from '../constants';
 import { MarketplaceContext } from '../App';
 import { CreateEventModal } from './Events';
+import { EventDetailsModal } from './EventsPage';
 import { performPostAction } from '../postActionRegistry';
 import { PostMenu } from './Post/PostMenu';
 import { buildImageUploadBundle } from '../utils/imageCompression';
@@ -4336,6 +4337,7 @@ export const EventPost = memo(
     );
     const [loading, setLoading] = useState(false);
     const [showShareSheet, setShowShareSheet] = useState(false);
+    const [showEventPreviewModal, setShowEventPreviewModal] = useState(false);
 
     const creator =
       author ||
@@ -4498,8 +4500,10 @@ export const EventPost = memo(
       }
     };
 
-    const handleCardClick = () => {
+    const handleCardClick = (e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
       if (onEventClick && event.id) onEventClick(event.id);
+      setShowEventPreviewModal(true);
     };
 
     return (
@@ -4561,8 +4565,8 @@ export const EventPost = memo(
               )}
             </div>
 
-            <div className="pb-4" onClick={(e) => e.stopPropagation()}>
-              <div className="border border-[#1E293B] rounded-2xl overflow-hidden bg-[#050B18]">
+            <div className="pb-4 px-3.5 sm:px-4" onClick={handleCardClick}>
+              <div className="border border-[#1E293B] hover:border-[#1877F2]/60 rounded-2xl overflow-hidden bg-[#050B18] transition-colors cursor-pointer group">
                 {event.cover_url ? (
                   <div className="h-48 bg-[#050B18] overflow-hidden relative">
                     <img
@@ -4762,6 +4766,24 @@ export const EventPost = memo(
             onShareComplete={handleShareComplete}
           />
         )}
+
+        {showEventPreviewModal && (
+          <EventDetailsModal
+            event={{
+              ...event,
+              image: event.cover_url || event.image || event.media_url,
+              time: event.time || (event.event_date ? new Date(event.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'),
+              attendees_count: attendeesCount,
+              interested_count: interestedCount,
+              user_rsvp_status: rsvpStatus,
+            }}
+            currentUser={currentUser}
+            onClose={() => setShowEventPreviewModal(false)}
+            onJoin={() => handleRSVPClick('going')}
+            onInterested={() => handleRSVPClick('interested')}
+            onProfileClick={onProfileClick}
+          />
+        )}
       </>
     );
   },
@@ -4811,6 +4833,7 @@ export const EventFeedCard = memo(
   }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showEventPreviewModal, setShowEventPreviewModal] = useState(false);
 
     const whenText = useMemo(() => {
       const d = item.event_date ? new Date(item.event_date) : null;
@@ -4906,11 +4929,13 @@ export const EventFeedCard = memo(
     const attending = Number(item.attending_count ?? 0);
     const interested = Number(item.interested_count ?? 0);
 
-    const handleCardClick = () => {
+    const handleCardClick = (e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
       if (onEventClick) {
         const eventId = item.event_id || item.id;
         onEventClick(eventId);
       }
+      setShowEventPreviewModal(true);
     };
 
     return (
@@ -4989,7 +5014,7 @@ export const EventFeedCard = memo(
             </div>
           )}
 
-          <div className="p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="p-4" onClick={handleCardClick}>
             <div className="text-[#F8FAFC] font-black text-[22px] leading-tight">
               {item.content}
             </div>
@@ -5084,6 +5109,32 @@ export const EventFeedCard = memo(
         </div>
 
         <div className="h-[10px] bg-[#050B18] border-t border-white/10" />
+
+        {showEventPreviewModal && (
+          <EventDetailsModal
+            event={{
+              id: item.event_id || item.id,
+              title: item.content,
+              description: item.event_description,
+              image: item.image_url || item.cover_url || item.media_url,
+              cover_url: item.image_url || item.cover_url || item.media_url,
+              location: item.location,
+              date: item.event_date,
+              event_date: item.event_date,
+              time: whenText || 'TBD',
+              attendees_count: attending,
+              interested_count: interested,
+              user_rsvp_status: my,
+              my_rsvp_status: my,
+              visibility: 'Worldwide',
+            }}
+            currentUser={currentUser as any}
+            onClose={() => setShowEventPreviewModal(false)}
+            onJoin={() => rsvp('going')}
+            onInterested={() => rsvp('interested')}
+            onProfileClick={onProfileClick}
+          />
+        )}
       </div>
     );
   },
@@ -6235,7 +6286,7 @@ export const Post = memo(
 
                   <div className="flex gap-4">
                     <span
-                      className="hover:underline cursor-pointer text-[16px]"
+                      className="hover:underline cursor-pointer text-[#CBD5E1] hover:text-[#F8FAFC] text-[20.5px] font-semibold transition-colors"
                       onClick={() => handleOpenComments()}
                     >
                       {formatCount(commentCount)} Discussions
@@ -6501,7 +6552,7 @@ export const Post = memo(
 
                   <div className="flex gap-4">
                     <span
-                      className="hover:underline cursor-pointer text-[16px]"
+                      className="hover:underline cursor-pointer text-[#CBD5E1] hover:text-[#F8FAFC] text-[20.5px] font-semibold transition-colors"
                       onClick={() => handleOpenComments()}
                     >
                       {formatCount(commentCount)} Discussions
@@ -8315,17 +8366,17 @@ export const CommentsSheet = memo(
           onClick={() => a.uid && onProfileClick(a.uid)}
         />
         <div className="flex-1 min-w-0">
-          <div className="inline-block max-w-full sm:max-w-[92%] bg-[#242526] rounded-[18px] px-3.5 py-2 sm:px-4 sm:py-2.5 border border-[#3A3B3C]/50 shadow-sm">
+          <div className="inline-block max-w-full sm:max-w-[92%] bg-[#162137]/65 hover:bg-[#1E293B]/70 rounded-[18px] px-3.5 py-2.5 sm:px-4 sm:py-3 border border-[#1E293B]/60 shadow-sm transition-colors">
             <div
-              className="text-[#F0F2F5] font-bold text-[13px] sm:text-[14px] leading-tight cursor-pointer hover:underline inline-flex items-center gap-1.5"
+              className="text-[#F8FAFC] font-bold text-[21px] leading-tight cursor-pointer hover:underline inline-flex items-center gap-1.5"
               onClick={() => a.uid && onProfileClick(a.uid)}
             >
               <span className="truncate">{a.name}</span>
               {(comment?.is_verified || authorUser?.is_verified) && (
-                <VerifiedBadge size={17} className="shrink-0" />
+                <VerifiedBadge size={21} className="shrink-0" />
               )}
             </div>
-            <div className="text-[#E4E6EB] text-[15px] leading-[1.35] font-normal whitespace-pre-wrap break-words mt-1">
+            <div className={`text-[#CBD5E1] ${isReply ? 'text-[19.5px]' : 'text-[20.5px]'} leading-[1.38] font-normal whitespace-pre-wrap break-words mt-1`}>
               <RichText
                 text={String(comment.text || '')}
                 users={users}
@@ -8396,7 +8447,7 @@ export const CommentsSheet = memo(
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-[#B0B3B8] text-[16px]">
+          <div className="text-[#CBD5E1] text-[20.5px] font-semibold">
             {formatCount(comments.length)} discussions
           </div>
           <button

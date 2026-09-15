@@ -143,8 +143,8 @@ const CompactEventCard: React.FC<{
     );
 };
 
-const EventDetailsModal: React.FC<{ 
-    event: any, // Changed to any to accept normalized events
+export const EventDetailsModal: React.FC<{ 
+    event: any, // Accepts normalized events or feed event objects
     currentUser: User | null, 
     onClose: () => void, 
     onJoin: () => void, 
@@ -154,20 +154,29 @@ const EventDetailsModal: React.FC<{
     // Safe date parsing
     const date = new Date(event.date || event.event_date || event.created_at || Date.now());
     
-    // Safe array access
+    // Safe array access & counts
     const attendees = Array.isArray(event.attendees) ? event.attendees : [];
     const interestedIds = Array.isArray(event.interestedIds) ? event.interestedIds : [];
+    const attendeesCount = attendees.length > 0 ? attendees.length : Number(event.attendees_count || event.attending_count || 0);
+    const interestedCount = interestedIds.length > 0 ? interestedIds.length : Number(event.interested_count || 0);
     
-    const isAttending = currentUser && attendees.includes(currentUser.id);
-    const isInterested = currentUser && interestedIds.includes(currentUser.id);
+    const isAttending = (currentUser && attendees.includes(currentUser.id)) || event.user_rsvp_status === 'going' || event.my_rsvp_status === 'going';
+    const isInterested = (currentUser && interestedIds.includes(currentUser.id)) || event.user_rsvp_status === 'interested' || event.my_rsvp_status === 'interested';
+    const eventImage = event.image || event.cover_url || event.media_url || '';
 
     return (
         <div className="fixed inset-0 z-[600] bg-black/90 flex items-center justify-center p-0 sm:p-4 animate-fade-in backdrop-blur-md" onClick={onClose}>
             <div className="bg-[#0F172A] w-full max-w-[700px] h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-[#1E293B]" onClick={e => e.stopPropagation()}>
-                <div className="relative h-[250px] sm:h-[350px] shrink-0">
-                    <img src={event.image || ''} className="w-full h-full object-cover" alt="" />
+                <div className="relative h-[250px] sm:h-[350px] shrink-0 bg-[#050B18]">
+                    {eventImage ? (
+                        <img src={eventImage} className="w-full h-full object-cover" alt={event.title || 'Event'} />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-[#0F172A] to-[#1E293B]">
+                            <i className="fas fa-calendar-alt text-[#1877F2] text-6xl opacity-50"></i>
+                        </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-transparent"></div>
-                    <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-all border border-white/10">
+                    <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-all border border-white/10 cursor-pointer z-10" aria-label="Close">
                         <i className="fas fa-times"></i>
                     </button>
                 </div>
@@ -178,11 +187,13 @@ const EventDetailsModal: React.FC<{
                             <p className="text-[#F3425F] font-black uppercase text-sm tracking-widest mb-1">
                                 {date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
-                            <h2 className="text-3xl font-black text-white leading-tight">{event.title}</h2>
-                            <div className="flex items-center gap-2 text-[#B0B3B8] font-bold mt-2">
-                                <i className="fas fa-location-dot text-[#1877F2]"></i>
-                                <span>{event.location}</span>
-                            </div>
+                            <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">{event.title}</h2>
+                            {event.location && (
+                                <div className="flex items-center gap-2 text-[#B0B3B8] font-bold mt-2">
+                                    <i className="fas fa-location-dot text-[#1877F2]"></i>
+                                    <span>{event.location}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
                             <button 
@@ -195,7 +206,7 @@ const EventDetailsModal: React.FC<{
                                 }`}
                             >
                                 <i className={`${isInterested ? 'fas' : 'far'} fa-star`}></i>
-                                <span>Interested</span>
+                                <span>{isInterested ? 'Interested' : 'Interested'}</span>
                             </button>
                             <button 
                                 onClick={onJoin}
@@ -227,15 +238,15 @@ const EventDetailsModal: React.FC<{
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-[#1E293B] flex items-center justify-center"><i className="fas fa-clock text-[#1877F2]"></i></div>
                                         <div>
-                                            <p className="text-white text-sm font-bold">{event.time}</p>
+                                            <p className="text-white text-sm font-bold">{event.time || date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                             <p className="text-[10px] text-[#94A3B8] font-bold">Standard Time</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-[#1E293B] flex items-center justify-center"><i className="fas fa-users text-[#45BD62]"></i></div>
                                         <div>
-                                            <p className="text-white text-sm font-bold">{attendees.length} Attendees</p>
-                                            <p className="text-[10px] text-[#94A3B8] font-bold">{interestedIds.length} interested</p>
+                                            <p className="text-white text-sm font-bold">{attendeesCount} Attendees</p>
+                                            <p className="text-[10px] text-[#94A3B8] font-bold">{interestedCount} interested</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
