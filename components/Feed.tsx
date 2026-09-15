@@ -6576,16 +6576,16 @@ export const Post = memo(
                   <img
                     src={previewAuthor.image}
                     alt=""
-                    className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5 cursor-pointer hover:opacity-90 transition-opacity"
+                    className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5 cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => previewAuthor.uid && onProfileClick(previewAuthor.uid)}
                   />
                   <div className="flex-1 min-w-0">
                     <div
-                      className="inline-block max-w-full bg-[#242526] rounded-[18px] px-3.5 py-2 border border-[#3A3B3C]/50 cursor-pointer hover:bg-[#2A2B2D] transition-colors"
+                      className="inline-block max-w-full bg-[#162137]/65 hover:bg-[#1E293B]/70 rounded-[18px] px-3.5 py-2 border border-[#1E293B]/60 transition-colors cursor-pointer"
                       onClick={() => handleOpenComments()}
                     >
                       <div
-                        className="text-[#F0F2F5] font-bold text-[14px] leading-tight cursor-pointer hover:underline inline-flex items-center gap-1.5"
+                        className="text-[#F8FAFC] font-bold text-[21px] leading-tight cursor-pointer hover:underline inline-flex items-center gap-1.5"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (previewAuthor.uid) onProfileClick(previewAuthor.uid);
@@ -6593,10 +6593,10 @@ export const Post = memo(
                       >
                         <span className="truncate">{previewAuthor.name}</span>
                         {(previewComment.is_verified || previewAuthor.user?.is_verified) && (
-                          <VerifiedBadge size={16} className="shrink-0" />
+                          <VerifiedBadge size={21} className="shrink-0" />
                         )}
                       </div>
-                      <div className="text-[#E4E6EB] text-[14px] leading-[1.35] font-normal whitespace-pre-wrap break-words mt-0.5">
+                      <div className="text-[#CBD5E1] text-[20.5px] leading-[1.38] font-normal whitespace-pre-wrap break-words mt-0.5">
                         {previewComment.text}
                       </div>
                       {previewComment.image_url && (
