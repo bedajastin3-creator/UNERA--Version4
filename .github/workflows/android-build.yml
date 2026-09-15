@@ -48,7 +48,6 @@ jobs:
           else
             npm install
           fi
-
       - name: 4. Build Production Web Application
         run: npm run build
 
@@ -84,11 +83,9 @@ jobs:
           else
             VERSION_NAME="1.0.${RUN_NUM}"
           fi
-
           echo "VERSION_CODE=$CALCULATED_VERSION_CODE" >> $GITHUB_ENV
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
           echo "Using Version Code: $CALCULATED_VERSION_CODE, Version Name: $VERSION_NAME"
-
       - name: 10. Prepare Release Keystore (if provided)
         id: keystore
         env:
@@ -103,7 +100,6 @@ jobs:
             echo "No signing keystore secret provided. Release builds will use fallback unsigned package."
             echo "has_keystore=false" >> $GITHUB_OUTPUT
           fi
-
       # -------------------------------------------------------------
       # BUILD DEBUG APK (Always generated for instant testing)
       # -------------------------------------------------------------
