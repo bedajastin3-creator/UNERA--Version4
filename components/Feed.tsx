@@ -1208,6 +1208,86 @@ const getFeedItemId = (item: any): number => {
   }
 };
 
+const resolveCommentAuthor = (
+  c: any,
+  users: User[] = [],
+  getCommentAuthor?: (id: number) => any
+) => {
+  const uid = Number(
+    c?.user_id ?? c?.userId ?? c?.author_id ?? c?.authorId ?? 0
+  );
+
+  const u =
+    (Number.isFinite(uid) ? users.find((x: any) => Number(x?.id) === uid) : null) ||
+    (getCommentAuthor ? getCommentAuthor(uid) : null) ||
+    null;
+
+  const name =
+    String(c?.author_name ?? c?.authorName ?? '').trim() ||
+    String(u?.name ?? '').trim() ||
+    String(u?.username ?? '').trim() ||
+    'User';
+
+  const image = avatarFrom({
+    profile_image_url: c?.author_image ?? c?.authorImage ?? u?.profile_image_url,
+    name,
+    username: u?.username ?? c?.author_username ?? c?.username,
+  });
+
+  return { uid, name, image, user: u };
+};
+
+const getFeedCommentFetchEndpoint = (itemType: string, p: any, viewerId: number): string => {
+  switch (itemType) {
+    case 'event': {
+      const eventId = p?.event_id || p?.id;
+      return `/api/events/${eventId}/comments?viewerId=${viewerId}`;
+    }
+    case 'group_post': {
+      const groupId = p?.group_id;
+      const groupPostId = p?.id;
+      return `/api/groups/${groupId}/posts/${groupPostId}/comments?viewerId=${viewerId}`;
+    }
+    case 'product': {
+      const productId = p?.product_id || p?.id;
+      return `/api/products/${productId}/reviews?viewerId=${viewerId}`;
+    }
+    case 'reel': {
+      const reelId = p?.reel_id || p?.id;
+      return `/api/reels/${reelId}/comments?viewerId=${viewerId}`;
+    }
+    case 'music': {
+      const songId = p?.song_id2 || p?.id;
+      return `/api/songs/${songId}/comments?viewerId=${viewerId}`;
+    }
+    case 'podcast': {
+      const podcastId = p?.podcast_id || p?.id;
+      return `/api/podcasts/${podcastId}/comments?viewerId=${viewerId}`;
+    }
+    default:
+      return `/api/posts/${p?.id}/comments?viewerId=${viewerId}`;
+  }
+};
+
+const getCommentLikeEndpoint = (itemType: string, commentId: number): string => {
+  switch (itemType) {
+    case 'event':
+      return `/api/event-comments/${commentId}/like`;
+    case 'group_post':
+      return `/api/group-post-comments/${commentId}/like`;
+    case 'product':
+      return `/api/product-reviews/${commentId}/like`;
+    case 'reel':
+      return `/api/reel-comments/${commentId}/like`;
+    case 'music':
+      return `/api/song-comments/${commentId}/like`;
+    case 'podcast':
+      return `/api/podcast-comments/${commentId}/like`;
+    default:
+      return `/api/comments/${commentId}/like`;
+  }
+};
+
 const getFeedKey = (item: any): string => {
   if (!item) return '';
   if (typeof item === 'string') return item;
@@ -4012,7 +4092,7 @@ const GroupPostHeader = memo(
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <button
-                className="text-left font-extrabold text-[20px] leading-[1.1] text-[#E4E6EB] truncate hover:underline cursor-pointer"
+                className="text-left font-extrabold text-[21px] leading-[1.1] text-[#E4E6EB] truncate hover:underline cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onOpenGroup) onOpenGroup(groupId || 0);
@@ -4022,7 +4102,7 @@ const GroupPostHeader = memo(
                 {groupName}
               </button>
               {isGroupVerified && (
-                <VerifiedBadge size={20} className="shrink-0" />
+                <VerifiedBadge size={21} className="shrink-0" />
               )}
             </div>
 
@@ -4447,7 +4527,7 @@ export const EventPost = memo(
                 />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1 flex-wrap">
-                    <h4 className="font-bold text-[#F8FAFC] text-[20px] truncate">
+                    <h4 className="font-bold text-[#F8FAFC] text-[21px] truncate">
                       {creator?.name || creator?.username || 'User'}
                     </h4>
                   </div>
@@ -4850,7 +4930,7 @@ export const EventFeedCard = memo(
               }}
             />
             <div className="min-w-0">
-              <div className="text-[#F8FAFC] font-bold text-[20px] truncate">
+              <div className="text-[#F8FAFC] font-bold text-[21px] truncate">
                 {item.name}
               </div>
               <div className="text-[#94A3B8] text-[15px]">
@@ -5261,6 +5341,7 @@ export const Post = memo(
     onHide,
     pushButton,
     onToggleGroupPostLike,
+    hideCommentPreview = false,
   }: {
     post: PostType;
     author: User | any;
@@ -5325,6 +5406,8 @@ export const Post = memo(
       postId: number,
       type?: ReactionType
     ) => Promise<{ liked: boolean; likes_count: number } | void>;
+
+    hideCommentPreview?: boolean;
   }) => {
 
                                                                                                      
@@ -5561,6 +5644,93 @@ export const Post = memo(
       return count.toString();
     };
 
+    const itemType = getFeedItemType(p);
+    const [previewComment, setPreviewComment] = useState<any>(() => {
+      if (hideCommentPreview) return null;
+      if (Array.isArray(p?.comments) && p.comments.length > 0) {
+        return p.comments[0];
+      }
+      const cached = getCachedComments(itemType, postId);
+      if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+        return cached.data[0];
+      }
+      return null;
+    });
+
+    useEffect(() => {
+      if (hideCommentPreview) return;
+      let isMounted = true;
+      if (commentCount > 0 && !previewComment) {
+        const cached = getCachedComments(itemType, postId);
+        if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+          setPreviewComment(cached.data[0]);
+          return;
+        }
+
+        const endpoint = getFeedCommentFetchEndpoint(itemType, p, safeUserId(currentUser));
+        apiFetch(endpoint)
+          .then((data) => {
+            if (!isMounted) return;
+            const arr = Array.isArray(data) ? data : data?.comments || [];
+            if (arr.length > 0) {
+              setPreviewComment(arr[0]);
+              setCachedComments(itemType, postId, arr);
+            }
+          })
+          .catch(() => {});
+      }
+      return () => {
+        isMounted = false;
+      };
+    }, [hideCommentPreview, commentCount, previewComment, itemType, postId, p, currentUser]);
+
+    const handleLikePreviewComment = async (c: any) => {
+      if (!currentUser) {
+        alert('Please login to react to comments.');
+        return;
+      }
+      const optimisticLiked = !c.liked_by_me;
+      const optimisticCount = c.liked_by_me
+        ? Math.max(0, (c.likes_count || 0) - 1)
+        : (c.likes_count || 0) + 1;
+
+      setPreviewComment((prev: any) =>
+        prev && prev.id === c.id
+          ? { ...prev, liked_by_me: optimisticLiked, likes_count: optimisticCount }
+          : prev
+      );
+
+      updateCachedComment(itemType, postId, c.id, (old: any) => ({
+        ...old,
+        liked_by_me: optimisticLiked,
+        likes_count: optimisticCount,
+      }));
+
+      try {
+        const endpoint = getCommentLikeEndpoint(itemType, c.id);
+        await apiFetch(endpoint, {
+          method: 'POST',
+          body: JSON.stringify({ user_id: safeUserId(currentUser) }),
+        });
+      } catch (err) {
+        setPreviewComment((prev: any) =>
+          prev && prev.id === c.id
+            ? { ...prev, liked_by_me: !optimisticLiked, likes_count: c.likes_count || 0 }
+            : prev
+        );
+        updateCachedComment(itemType, postId, c.id, (old: any) => ({
+          ...old,
+          liked_by_me: !optimisticLiked,
+          likes_count: c.likes_count || 0,
+        }));
+      }
+    };
+
+    const previewAuthor = useMemo(() => {
+      if (!previewComment) return null;
+      return resolveCommentAuthor(previewComment, users);
+    }, [previewComment, users]);
+
     const emojiList = useMemo(() => {
       if (reactionsArr.length > 0) {
         const em = topReactionEmojis(reactionsArr, 2);
@@ -5751,11 +5921,11 @@ export const Post = memo(
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1 flex-wrap">
-                      <h4 className="font-bold text-[#F8FAFC] text-[20px] cursor-pointer hover:underline truncate">
+                      <h4 className="font-bold text-[#F8FAFC] text-[21px] cursor-pointer hover:underline truncate">
                         {a.name || a.username || 'User'}
                       </h4>
                       {a.is_verified && (
-                        <VerifiedBadge size={20} className="shrink-0" />
+                        <VerifiedBadge size={21} className="shrink-0" />
                       )}
                       {(groupName || group) && (
                         <span className="inline-flex items-center gap-1 text-[#94A3B8] text-[15px] font-normal">
@@ -5766,11 +5936,11 @@ export const Post = memo(
                               e.stopPropagation();
                               if (onOpenGroup) onOpenGroup(groupId || group?.id || 0);
                             }}
-                            className="font-bold text-[#F8FAFC] hover:underline cursor-pointer flex items-center gap-1"
+                            className="font-bold text-[#F8FAFC] hover:underline cursor-pointer flex items-center gap-1 text-[21px]"
                           >
                             <span className="truncate">{groupName || group?.name}</span>
                             {(group?.is_verified || (group as any)?.verified) && (
-                              <VerifiedBadge size={18} className="shrink-0" />
+                              <VerifiedBadge size={21} className="shrink-0" />
                             )}
                           </button>
                         </span>
@@ -6397,6 +6567,81 @@ export const Post = memo(
                   </div>
                 </div>
               </>
+            )}
+
+            {/* Inline Facebook-style single comment preview */}
+            {!hideCommentPreview && previewComment && previewAuthor && (
+              <div className="px-3.5 pb-3 pt-1 border-t border-[#1E293B]/40">
+                <div className="flex items-start gap-2.5">
+                  <img
+                    src={previewAuthor.image}
+                    alt=""
+                    className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => previewAuthor.uid && onProfileClick(previewAuthor.uid)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="inline-block max-w-full bg-[#242526] rounded-[18px] px-3.5 py-2 border border-[#3A3B3C]/50 cursor-pointer hover:bg-[#2A2B2D] transition-colors"
+                      onClick={() => handleOpenComments()}
+                    >
+                      <div
+                        className="text-[#F0F2F5] font-bold text-[14px] leading-tight cursor-pointer hover:underline inline-flex items-center gap-1.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (previewAuthor.uid) onProfileClick(previewAuthor.uid);
+                        }}
+                      >
+                        <span className="truncate">{previewAuthor.name}</span>
+                        {(previewComment.is_verified || previewAuthor.user?.is_verified) && (
+                          <VerifiedBadge size={16} className="shrink-0" />
+                        )}
+                      </div>
+                      <div className="text-[#E4E6EB] text-[14px] leading-[1.35] font-normal whitespace-pre-wrap break-words mt-0.5">
+                        {previewComment.text}
+                      </div>
+                      {previewComment.image_url && (
+                        <div className="mt-1.5 rounded-lg overflow-hidden max-w-[200px]">
+                          <img
+                            src={previewComment.image_url}
+                            alt=""
+                            className="object-cover rounded-lg max-h-[140px]"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-1 ml-3 flex items-center gap-3 text-[12px]">
+                      <span className="text-[#B0B3B8] font-normal">
+                        {formatRelativeTime(previewComment.created_at || previewComment.createdAt || previewComment.timestamp)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleLikePreviewComment(previewComment)}
+                        className={`font-bold hover:underline transition-colors inline-flex items-center gap-1 ${
+                          previewComment.liked_by_me
+                            ? 'text-[#F43F5E]'
+                            : 'text-[#B0B3B8] hover:text-[#E4E6EB]'
+                        }`}
+                      >
+                        <span className="text-[13px]">{previewComment.liked_by_me ? '❤️' : '🤍'}</span>
+                        <span>{previewComment.liked_by_me ? 'Liked' : 'Like'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenComments()}
+                        className="font-bold text-[#B0B3B8] hover:text-[#E4E6EB] hover:underline transition-colors"
+                      >
+                        Reply
+                      </button>
+                      {previewComment.likes_count > 0 && (
+                        <span className="inline-flex items-center gap-1 bg-[#F43F5E]/15 text-[#F43F5E] px-1.5 py-0.5 rounded-full text-[11px] font-bold">
+                          <span className="text-[10px]">❤️</span>
+                          <span>{formatCount(previewComment.likes_count)}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
         </article>
 
@@ -8106,13 +8351,14 @@ export const CommentsSheet = memo(
             <button
               type="button"
               onClick={() => handleLikeComment(comment)}
-              className={`font-bold hover:underline transition-colors ${
+              className={`font-bold hover:underline transition-colors inline-flex items-center gap-1 ${
                 comment.liked_by_me
-                  ? 'text-[#1877F2]'
+                  ? 'text-[#F43F5E]'
                   : 'text-[#B0B3B8] hover:text-[#E4E6EB]'
               }`}
             >
-              {comment.liked_by_me ? 'Liked' : 'Like'}
+              <span className="text-[13px]">{comment.liked_by_me ? '❤️' : '🤍'}</span>
+              <span>{comment.liked_by_me ? 'Liked' : 'Like'}</span>
             </button>
             <button
               type="button"
@@ -8122,8 +8368,8 @@ export const CommentsSheet = memo(
               Reply
             </button>
             {comment.likes_count > 0 && (
-              <span className="inline-flex items-center gap-1 bg-[#1877F2]/20 text-[#1877F2] px-1.5 py-0.5 rounded-full text-[11px] font-bold">
-                <i className="fas fa-thumbs-up text-[9px]" />
+              <span className="inline-flex items-center gap-1 bg-[#F43F5E]/15 text-[#F43F5E] px-1.5 py-0.5 rounded-full text-[11px] font-bold">
+                <span className="text-[10px]">❤️</span>
                 <span>{formatCount(comment.likes_count)}</span>
               </span>
             )}
@@ -8169,6 +8415,7 @@ export const CommentsSheet = memo(
         <div className="border-b border-[#1E293B] bg-[#050B18]">
           {post && (
             <Post
+              hideCommentPreview={true}
               post={post}
               author={
                 (post as any).author || {
