@@ -1749,7 +1749,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   <h1 className="text-[28px] md:text-[32px] leading-tight font-extrabold text-[#F8FAFC] flex items-center gap-2 truncate">
                     {safeStringHelper((user as any).name, "User")}
                     {(user as any).is_verified && (
-                      <VerifiedBadge size={22} className="flex-shrink-0" />
+                      <VerifiedBadge size={28} className="flex-shrink-0" />
                     )}
                   </h1>
                   

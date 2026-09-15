@@ -258,7 +258,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 }
               }}
               placeholder="Search people, videos, reels, groups, posts…"
-              className="w-full bg-[#0F172A] border border-[#1E293B] focus:border-[#F97316] rounded-xl py-2 pl-10 pr-10 text-sm text-[#F8FAFC] placeholder-[#64748B] outline-none transition-colors"
+              className="w-full bg-[#0F172A] border border-[#1E293B] focus:border-[#1877F2] rounded-xl py-2 pl-10 pr-10 text-sm text-[#F8FAFC] placeholder-[#64748B] outline-none transition-colors"
             />
             {query && (
               <button
@@ -279,7 +279,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === 'all'
-                  ? 'bg-[#F97316] text-white shadow-sm'
+                  ? 'bg-[#1877F2] text-white shadow-sm'
                   : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
               }`}
             >
@@ -289,7 +289,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onClick={() => setActiveTab('people')}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === 'people'
-                  ? 'bg-[#F97316] text-white shadow-sm'
+                  ? 'bg-[#1877F2] text-white shadow-sm'
                   : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
               }`}
             >
@@ -299,7 +299,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onClick={() => setActiveTab('videos')}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === 'videos'
-                  ? 'bg-[#F97316] text-white shadow-sm'
+                  ? 'bg-[#1877F2] text-white shadow-sm'
                   : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
               }`}
             >
@@ -309,7 +309,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onClick={() => setActiveTab('posts')}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === 'posts'
-                  ? 'bg-[#F97316] text-white shadow-sm'
+                  ? 'bg-[#1877F2] text-white shadow-sm'
                   : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
               }`}
             >
@@ -319,7 +319,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onClick={() => setActiveTab('groups')}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === 'groups'
-                  ? 'bg-[#F97316] text-white shadow-sm'
+                  ? 'bg-[#1877F2] text-white shadow-sm'
                   : 'bg-[#0F172A] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E293B]'
               }`}
             >
@@ -339,13 +339,13 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             {/* Header: Recent Searches + Clear all */}
             <div className="flex items-center justify-between mb-3 px-1">
               <span className="text-[15px] font-bold text-[#F8FAFC] flex items-center gap-2">
-                <i className="fas fa-history text-[#F97316]"></i>
+                <i className="fas fa-history text-[#1877F2]"></i>
                 <span>Recent Searches</span>
               </span>
               {recentSearches.length > 0 && (
                 <button
                   onClick={clearAllRecent}
-                  className="text-xs font-semibold text-[#F97316] hover:text-[#FB923C] transition-colors"
+                  className="text-xs font-semibold text-[#1877F2] hover:text-[#38BDF8] transition-colors"
                 >
                   Clear all
                 </button>
@@ -492,7 +492,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                                 {user.name}
                               </span>
                               {user.is_verified && (
-                                <VerifiedBadge size={14} className="shrink-0" />
+                                <VerifiedBadge size={17} className="shrink-0" />
                               )}
                             </div>
                             <div className="text-xs text-[#64748B] truncate">
@@ -510,7 +510,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                             className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ml-2 ${
                               isFollowed
                                 ? 'bg-[#1E293B] text-[#94A3B8] hover:text-[#F8FAFC]'
-                                : 'bg-[#F97316] text-white hover:bg-[#EA580C]'
+                                : 'bg-[#1877F2] text-white hover:bg-[#166FE5]'
                             }`}
                           >
                             {isFollowed ? 'Following' : 'Follow'}

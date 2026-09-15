@@ -4022,7 +4022,7 @@ const GroupPostHeader = memo(
                 {groupName}
               </button>
               {isGroupVerified && (
-                <VerifiedBadge size={15} className="shrink-0" />
+                <VerifiedBadge size={20} className="shrink-0" />
               )}
             </div>
 
@@ -5755,7 +5755,7 @@ export const Post = memo(
                         {a.name || a.username || 'User'}
                       </h4>
                       {a.is_verified && (
-                        <VerifiedBadge size={16} className="shrink-0" />
+                        <VerifiedBadge size={20} className="shrink-0" />
                       )}
                       {(groupName || group) && (
                         <span className="inline-flex items-center gap-1 text-[#94A3B8] text-[15px] font-normal">
@@ -5770,7 +5770,7 @@ export const Post = memo(
                           >
                             <span className="truncate">{groupName || group?.name}</span>
                             {(group?.is_verified || (group as any)?.verified) && (
-                              <VerifiedBadge size={14} className="shrink-0" />
+                              <VerifiedBadge size={18} className="shrink-0" />
                             )}
                           </button>
                         </span>
@@ -8077,7 +8077,7 @@ export const CommentsSheet = memo(
             >
               <span className="truncate">{a.name}</span>
               {(comment?.is_verified || authorUser?.is_verified) && (
-                <VerifiedBadge size={13} className="shrink-0" />
+                <VerifiedBadge size={17} className="shrink-0" />
               )}
             </div>
             <div className="text-[#E4E6EB] text-[15px] leading-[1.35] font-normal whitespace-pre-wrap break-words mt-1">

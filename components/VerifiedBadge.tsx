@@ -1,7 +1,7 @@
 import React from 'react';
 
 export interface VerifiedBadgeProps {
-  /** Size in pixels (number) or CSS string (e.g. '15px'). Defaults to 15 */
+  /** Size in pixels (number) or CSS string (e.g. '1.05em', '19px'). Defaults to '1.05em' (matches user name font size) */
   size?: number | string;
   /** Additional CSS classes for spacing or positioning */
   className?: string;
@@ -15,9 +15,10 @@ export interface VerifiedBadgeProps {
  * Modern 12-point scalloped starburst verification badge.
  * Designed with smooth, professionally rounded tips and valleys
  * and a centered, clean white checkmark.
+ * Sized to match user name typography.
  */
 export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
-  size = 15,
+  size = '1.05em',
   className = '',
   title = 'Verified Account',
   color = '#1877F2',
@@ -27,7 +28,7 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   return (
     <span
       className={`inline-flex items-center justify-center align-middle shrink-0 select-none ${className}`}
-      style={{ width: pixelSize, height: pixelSize }}
+      style={{ width: pixelSize, height: pixelSize, minWidth: pixelSize, minHeight: pixelSize }}
       title={title}
       aria-label={title}
     >

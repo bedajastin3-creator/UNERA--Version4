@@ -15,9 +15,7 @@ interface Props {
   stickyHeader?: boolean;
 }
 
-const AVATAR_SIZE = 64;
-const STACK_AVATAR_SIZE = 28;
-const INITIAL_EARLIER_COUNT = 10;
+const INITIAL_EARLIER_COUNT = 15;
 const LOAD_MORE_COUNT = 15;
 
 const safeText = (v: any, fallback = "") => (typeof v === "string" ? v : fallback);
@@ -27,7 +25,7 @@ const safeNumber = (v: any, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const getNotificationTime = (n: Notification) => {
+const getNotificationTime = (n: Notification): number => {
   const updated = n.updated_at ? new Date(n.updated_at).getTime() : NaN;
   if (Number.isFinite(updated)) return updated;
   const created = n.created_at ? new Date(n.created_at).getTime() : NaN;
@@ -60,7 +58,7 @@ const formatTimestamp = (iso?: string | null) => {
   const ampm = hours >= 12 ? "PM" : "AM";
   const hour12 = hours % 12 === 0 ? 12 : hours % 12;
 
-  return `${month} ${dayNum} at ${hour12}:${minutes}${ampm}`;
+  return `${month} ${dayNum} at ${hour12}:${minutes} ${ampm}`;
 };
 
 const toWords = (text: string, limit = 10) => {
@@ -145,14 +143,14 @@ const getReactionEmojiCluster = (n: Notification): string[] => {
   return [primary];
 };
 
-// UPDATED: New badge function with song, podcast, story, event support
+// Contextual badge attached to avatar bottom-right (clean Facebook style with UNERA blue theme)
 const getNotificationBadge = (n: Notification) => {
   const type = safeText(n.type).toLowerCase();
   const entityType = safeText(n.entity_type || (n as any).target_type || "").toLowerCase();
   const reactionEmoji = getReactionEmoji(n);
 
   if (reactionEmoji) {
-    return { kind: "emoji" as const, value: reactionEmoji, bg: "#0B1120" };
+    return { kind: "emoji" as const, value: reactionEmoji, bg: "#1E293B" };
   }
 
   if (type.includes("discuss") || type.includes("comment") || type.includes("reply")) {
@@ -160,49 +158,48 @@ const getNotificationBadge = (n: Notification) => {
   }
 
   if (type.includes("follow")) {
-    return { kind: "icon" as const, value: "fas fa-user-plus", bg: "#F97316" };
+    return { kind: "icon" as const, value: "fas fa-user-plus", bg: "#1877F2" };
   }
 
   if (type.includes("share")) {
-    return { kind: "icon" as const, value: "fas fa-share", bg: "#F97316" };
+    return { kind: "icon" as const, value: "fas fa-share", bg: "#1877F2" };
   }
 
   if (type.includes("birthday")) {
-    return { kind: "emoji" as const, value: "🎂", bg: "#0B1120" };
+    return { kind: "emoji" as const, value: "🎂", bg: "#1E293B" };
   }
 
   if (entityType === "song") {
-    return { kind: "icon" as const, value: "fas fa-music", bg: "#F97316" };
+    return { kind: "icon" as const, value: "fas fa-music", bg: "#6366F1" };
   }
 
   if (entityType === "podcast") {
-    return { kind: "icon" as const, value: "fas fa-microphone", bg: "#EA580C" };
+    return { kind: "icon" as const, value: "fas fa-microphone", bg: "#8B5CF6" };
   }
 
   if (entityType === "story") {
-    return { kind: "icon" as const, value: "fas fa-bolt", bg: "#FB923C" };
+    return { kind: "icon" as const, value: "fas fa-bolt", bg: "#06B6D4" };
   }
 
   if (entityType === "event" || type === "event") {
-    return { kind: "icon" as const, value: "fas fa-calendar-alt", bg: "#EA580C" };
+    return { kind: "icon" as const, value: "fas fa-calendar-alt", bg: "#2563EB" };
   }
 
   if (entityType === "group_post" || entityType === "group" || type.includes("group")) {
-    return { kind: "icon" as const, value: "fas fa-users", bg: "#FB923C" };
+    return { kind: "icon" as const, value: "fas fa-users", bg: "#1877F2" };
   }
 
   if (entityType === "product" || type.includes("product") || type.includes("marketplace")) {
-    return { kind: "icon" as const, value: "fas fa-shopping-bag", bg: "#F97316" };
+    return { kind: "icon" as const, value: "fas fa-shopping-bag", bg: "#0284C7" };
   }
 
-  if (entityType === "reel") {
-    return { kind: "icon" as const, value: "fas fa-video", bg: "#F43F5E" };
+  if (entityType === "reel" || entityType === "video") {
+    return { kind: "icon" as const, value: "fas fa-video", bg: "#E11D48" };
   }
 
-  return { kind: "icon" as const, value: "fas fa-bell", bg: "#F97316" };
+  return { kind: "icon" as const, value: "fas fa-bell", bg: "#1877F2" };
 };
 
-// UPDATED: New message builder with full content type support
 const buildNotificationMessageParts = (n: Notification) => {
   const type = safeText(n.type).toLowerCase();
   const entityType = safeText(n.entity_type || (n as any).target_type || "").toLowerCase();
@@ -212,7 +209,7 @@ const buildNotificationMessageParts = (n: Notification) => {
   const reactionType = safeText((n as any).reaction_type).toLowerCase();
   const othersText = othersCount > 0 ? ` and ${othersCount} others` : "";
 
-  const targetLabel = 
+  const targetLabel =
     entityType === "post" ? "your post" :
     entityType === "reel" ? "your reel" :
     entityType === "story" ? "your story" :
@@ -221,7 +218,7 @@ const buildNotificationMessageParts = (n: Notification) => {
     entityType === "product" ? "your product" :
     entityType === "group_post" ? "your group post" :
     entityType === "event" ? "your event" :
-    entityType === "comment" ? "your Discuss" :
+    entityType === "comment" ? "your comment" :
     entityType === "group" ? "your group" :
     entityType === "profile" ? "you" :
     "your content";
@@ -246,154 +243,52 @@ const buildNotificationMessageParts = (n: Notification) => {
 
   if (type === "react" || type === "reaction" || type === "like") {
     return {
-      middle: `${othersText} ${reactionVerb} ${targetLabel}`.trim(),
-      cta: "See reactions.",
+      middle: `${othersText} ${reactionVerb} ${targetLabel}.`.trim(),
+      cta: "",
     };
   }
 
-  if (type === "discuss" || type === "comment") {
+  if (type.includes("discuss") || type.includes("comment") || type.includes("reply")) {
+    const isReply = type.includes("reply") || rawMessage.includes("replied");
     return {
-      middle: `${othersText} discussed ${targetLabel}`.trim(),
-      cta: othersCount > 0 ? "Join their Discuss." : "Join the Discuss.",
+      middle: `${othersText} ${isReply ? "replied to your comment" : "commented on " + targetLabel}.`.trim(),
+      cta: "",
     };
   }
 
-  if (type === "reply") {
+  if (type.includes("follow")) {
     return {
-      middle: `${othersText} replied in Discuss`.trim(),
-      cta: "Join the conversation.",
+      middle: `${othersText} started following you.`.trim(),
+      cta: "",
     };
   }
 
-  if (type === "share") {
+  if (type.includes("share")) {
     return {
-      middle: `${othersText} shared ${targetLabel}`.trim(),
-      cta: "View shares.",
+      middle: `${othersText} shared ${targetLabel}.`.trim(),
+      cta: "",
     };
   }
 
-  if (type === "follow") {
+  if (type.includes("tag") || type.includes("mention")) {
     return {
-      middle: `${othersText} followed you`.trim(),
-      cta: "Keep creating great content.",
+      middle: `${othersText} mentioned you in a comment.`.trim(),
+      cta: "",
     };
   }
 
-  if (type === "birthday") {
+  if (rawMessage) {
     return {
-      middle: rawMessage || "has a birthday today",
-      cta: "Wish them now.",
-    };
-  }
-
-  if (type === "event") {
-    const lower = rawMessage.toLowerCase();
-    if (lower.includes("is going to your event")) {
-      return {
-        middle: `${othersText} is going to your event`.trim(),
-        cta: "View event.",
-      };
-    }
-    if (lower.includes("is interested in your event")) {
-      return {
-        middle: `${othersText} is interested in your event`.trim(),
-        cta: "View event.",
-      };
-    }
-    return {
-      middle: rawMessage || "interacted with your event",
-      cta: "View details.",
-    };
-  }
-
-  if (type === "group_request") {
-    const lower = rawMessage.toLowerCase();
-    if (lower.includes("joined your group")) {
-      return {
-        middle: `${othersText} joined your group`.trim(),
-        cta: "Open group.",
-      };
-    }
-    return {
-      middle: rawMessage || "requested to join your group",
-      cta: "Review request.",
-    };
-  }
-
-  if (type === "group_invite") {
-    return {
-      middle: rawMessage || "invited you to a group",
-      cta: "View invitation.",
-    };
-  }
-
-  if (type === "group_approved") {
-    return {
-      middle: rawMessage || "approved your group request",
-      cta: "Open group.",
-    };
-  }
-
-  if (type === "group_declined") {
-    return {
-      middle: rawMessage || "declined your group request",
-      cta: "See details.",
-    };
-  }
-
-  if (type === "group_post") {
-    return {
-      middle: rawMessage || "posted in your group",
-      cta: "Join the Discuss.",
-    };
-  }
-
-  if (type === "mention") {
-    return {
-      middle: `${othersText} mentioned you`.trim(),
-      cta: "See mention.",
-    };
-  }
-
-  if (type === "tag") {
-    return {
-      middle: `${othersText} tagged you`.trim(),
-      cta: "Open now.",
-    };
-  }
-
-  if (type === "product_interest" || type === "marketplace") {
-    return {
-      middle: rawMessage || `showed interest in ${targetLabel}`,
-      cta: "View details.",
-    };
-  }
-
-  if (
-    type === "system" ||
-    type === "admin" ||
-    type === "security" ||
-    type === "warning" ||
-    type === "info"
-  ) {
-    return {
-      middle: rawMessage || "sent you an update",
+      middle: rawMessage,
       cta: "",
     };
   }
 
   return {
-    middle: rawMessage || "interacted with you",
+    middle: `interacted with ${targetLabel}.`,
     cta: "",
   };
 };
-
-// NEW: Helper functions for target routing
-const getNotificationTargetType = (n: Notification) => 
-  safeText((n as any).target_type || n.entity_type || "").toLowerCase();
-
-const getNotificationTargetId = (n: Notification) => 
-  safeNumber((n as any).target_id ?? (n as any).entity_id, 0);
 
 const NotificationStackedAvatars: React.FC<{
   notification: Notification;
@@ -401,103 +296,38 @@ const NotificationStackedAvatars: React.FC<{
   onProfileClick: (id: number) => void;
 }> = ({ notification, users, onProfileClick }) => {
   const actorIds = getStackActorIds(notification);
-  const totalCount = Math.max(1, safeNumber(notification.actors_count, 1));
-
-  const actors = actorIds
-    .map((id) => users.find((u) => u.id === id))
-    .filter(Boolean) as User[];
-
-  if (actors.length <= 1 && totalCount <= 1) return null;
-
-  const extra = Math.max(0, totalCount - actors.length);
+  if (actorIds.length <= 1) return null;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        marginTop: 8,
-      }}
-    >
-      {actors.map((user, index) => (
-        <button
-          key={user.id}
-          onClick={(e) => {
-            e.stopPropagation();
-            onProfileClick(user.id);
-          }}
-          aria-label={user.name || `User ${user.id}`}
-          title={user.name || ""}
-          style={{
-            width: STACK_AVATAR_SIZE,
-            height: STACK_AVATAR_SIZE,
-            borderRadius: "50%",
-            overflow: "hidden",
-            border: "2px solid #0F172A",
-            marginLeft: index === 0 ? 0 : -9,
-            padding: 0,
-            background: "#1E293B",
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
-          }}
-        >
+    <div className="flex items-center -space-x-2 mt-2 select-none">
+      {actorIds.map((id) => {
+        const u = users.find((x) => x.id === id);
+        if (!u) return null;
+        return (
           <img
-            src={safeText(user.profile_image_url, "https://via.placeholder.com/100?text=User")}
-            alt={user.name || "User"}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              display: "block",
+            key={id}
+            src={u.profile_image_url || "https://via.placeholder.com/100?text=User"}
+            alt={u.name}
+            onClick={(e) => {
+              e.stopPropagation();
+              onProfileClick(id);
             }}
+            className="w-7 h-7 rounded-full object-cover border-2 border-[#0B1120] cursor-pointer hover:scale-110 transition-transform shadow-sm"
           />
-        </button>
-      ))}
-
-      {extra > 0 && (
-        <div
-          style={{
-            marginLeft: actors.length > 0 ? -9 : 0,
-            minWidth: 30,
-            height: STACK_AVATAR_SIZE,
-            borderRadius: 999,
-            padding: "0 8px",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#1E293B",
-            border: "2px solid #0F172A",
-            color: "#94A3B8",
-            fontSize: 11,
-            fontWeight: 800,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
-          }}
-        >
-          +{extra}
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 };
 
 const NotificationReactionCluster: React.FC<{ notification: Notification }> = ({ notification }) => {
   const emojis = getReactionEmojiCluster(notification);
-  if (emojis.length === 0) return null;
+  if (!emojis.length) return null;
 
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 2,
-        padding: "3px 7px",
-        borderRadius: 999,
-        background: "#1E293B",
-        border: "1px solid #334155",
-      }}
-    >
-      {emojis.slice(0, 3).map((emoji, i) => (
-        <span key={`${emoji}-${i}`} style={{ fontSize: 13, lineHeight: 1 }}>
+    <div className="inline-flex items-center gap-0.5 bg-[#1E293B] border border-[#334155]/60 rounded-full px-2 py-0.5 select-none">
+      {emojis.map((emoji, i) => (
+        <span key={`${emoji}-${i}`} className="text-xs leading-none">
           {emoji}
         </span>
       ))}
@@ -518,17 +348,6 @@ export const NotificationsPage: React.FC<Props> = ({
   simulateApi = false,
   stickyHeader = false,
 }) => {
-  useEffect(() => {
-    const id = "np-roboto-font";
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap";
-      document.head.appendChild(link);
-    }
-  }, []);
-
   const getUser = (id?: number) => users.find((u) => u.id === id);
 
   const [localNotifications, setLocalNotifications] = useState<Notification[]>(notifications || []);
@@ -538,6 +357,8 @@ export const NotificationsPage: React.FC<Props> = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -563,43 +384,57 @@ export const NotificationsPage: React.FC<Props> = ({
     [localNotifications]
   );
 
+  const filteredNotifications = useMemo(() => {
+    if (!searchQuery.trim()) return localNotifications;
+    const q = searchQuery.toLowerCase().trim();
+    return localNotifications.filter((n) => {
+      const actor = getUser(n.actor_id);
+      const name = safeText(actor?.name).toLowerCase();
+      const message = safeText(n.message).toLowerCase();
+      const type = safeText(n.type).toLowerCase();
+      return name.includes(q) || message.includes(q) || type.includes(q);
+    });
+  }, [localNotifications, searchQuery, users]);
+
   const sortedNotifications = useMemo(() => {
-    return [...localNotifications].sort((a, b) => {
+    return [...filteredNotifications].sort((a, b) => {
       const ta = getNotificationTime(a);
       const tb = getNotificationTime(b);
       if (tb !== ta) return tb - ta;
       return safeNumber(b.id, 0) - safeNumber(a.id, 0);
     });
-  }, [localNotifications]);
+  }, [filteredNotifications]);
 
-  const { newNotifications, earlierNotifications } = useMemo(() => {
+  // Facebook Sections: NEW, TODAY, EARLIER
+  const { newNotifications, todayNotifications, earlierNotifications } = useMemo(() => {
     const newN: Notification[] = [];
+    const todayN: Notification[] = [];
     const earlierN: Notification[] = [];
+
+    const now = Date.now();
+    const twoHoursAgo = now - 2 * 60 * 60 * 1000;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTodayTime = startOfToday.getTime();
 
     sortedNotifications.forEach((n) => {
       const isUnread = !safeNumber(n.is_read, 0);
+      const time = getNotificationTime(n);
 
-      // Unread notifications go to New; read notifications are previous/earlier
-      if (isUnread) {
+      if (isUnread || time >= twoHoursAgo) {
         newN.push(n);
+      } else if (time >= startOfTodayTime) {
+        todayN.push(n);
       } else {
         earlierN.push(n);
       }
     });
 
-    // If there are more than 8 unread notifications, keep the newest 8 in New and push the rest to Earlier
-    if (newN.length > 8) {
-      const overflow = newN.splice(8);
-      earlierN.unshift(...overflow);
-      earlierN.sort((a, b) => {
-        const ta = getNotificationTime(a);
-        const tb = getNotificationTime(b);
-        if (tb !== ta) return tb - ta;
-        return safeNumber(b.id, 0) - safeNumber(a.id, 0);
-      });
-    }
-
-    return { newNotifications: newN, earlierNotifications: earlierN };
+    return {
+      newNotifications: newN,
+      todayNotifications: todayN,
+      earlierNotifications: earlierN,
+    };
   }, [sortedNotifications]);
 
   const visibleEarlierNotifications = useMemo(
@@ -630,7 +465,7 @@ export const NotificationsPage: React.FC<Props> = ({
           await result;
         }
       } else if (simulateApi) {
-        await new Promise((res) => setTimeout(res, 700));
+        await new Promise((res) => setTimeout(res, 500));
       }
 
       showToast("success", "All notifications marked as read");
@@ -643,11 +478,21 @@ export const NotificationsPage: React.FC<Props> = ({
     }
   };
 
+  const handleToggleReadStatus = (notificationId: number, currentRead: boolean) => {
+    setMenuOpenId(null);
+    setLocalNotifications((prev) =>
+      prev.map((n) =>
+        safeNumber(n.id, 0) === notificationId
+          ? { ...n, is_read: currentRead ? 0 : 1 }
+          : n
+      )
+    );
+  };
+
   const handleLoadMoreEarlier = async () => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
 
-    // Expand visible count by LOAD_MORE_COUNT to show previous notifications
     setEarlierVisibleCount((prev) => prev + LOAD_MORE_COUNT);
 
     if (onLoadMore) {
@@ -682,32 +527,30 @@ export const NotificationsPage: React.FC<Props> = ({
         await new Promise((res) => setTimeout(res, 500));
       }
 
-      showToast("success", "Notification deleted");
+      showToast("success", "Notification removed");
     } catch (err) {
       console.error("Delete notification failed:", err);
       setLocalNotifications(snapshot);
-      showToast("error", "Failed to delete notification");
+      showToast("error", "Failed to remove notification");
     } finally {
       setDeletingId(null);
     }
   };
 
-  // UPDATED: New open handler with target_type + target_id routing
   const handleOpenNotification = (n: Notification) => {
-    if (onOpenNotification) {
-      onOpenNotification(n);
-      return;
+    // Mark as read locally when opened
+    if (!safeNumber(n.is_read, 0)) {
+      setLocalNotifications((prev) =>
+        prev.map((item) =>
+          safeNumber(item.id, 0) === safeNumber(n.id, 0)
+            ? { ...item, is_read: 1 }
+            : item
+        )
+      );
     }
 
-    const targetType = getNotificationTargetType(n);
-    const targetId = getNotificationTargetId(n);
-
-    if (targetType && targetId) {
-      // local fallback only if parent didn't pass routing handler
-      // since this component itself cannot open feed/reel/story/song/etc
-      // fallback to actor profile when no parent routing exists
-      const actorId = safeNumber(n.actor_id, 0);
-      if (actorId) onProfileClick(actorId);
+    if (onOpenNotification) {
+      onOpenNotification(n);
       return;
     }
 
@@ -715,6 +558,7 @@ export const NotificationsPage: React.FC<Props> = ({
     if (actorId) onProfileClick(actorId);
   };
 
+  // FLAT, CONTINUOUS ROW (Facebook-style)
   const renderRow = (n: Notification) => {
     const actor = getUser(n.actor_id);
     const actorName = safeText(actor?.name, "Someone");
@@ -725,7 +569,7 @@ export const NotificationsPage: React.FC<Props> = ({
     const displayTime = safeText(n.updated_at) || safeText(n.created_at);
     const previewText = toWords(
       safeText((n as any).preview_text || (n as any).content_preview || (n as any).preview_title || ""),
-      10
+      12
     );
     const previewImage = safeText((n as any).preview_image || "");
     const messageParts = buildNotificationMessageParts(n);
@@ -734,247 +578,297 @@ export const NotificationsPage: React.FC<Props> = ({
     return (
       <div
         key={notificationId}
-        className={`flex items-start gap-3.5 p-3.5 sm:p-4 border-b border-[#1E293B] last:border-b-0 transition-colors ${
+        onClick={() => handleOpenNotification(n)}
+        className={`group relative flex items-center justify-between gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-[#1E293B]/40 ${
           isUnread
-            ? "bg-[#F97316]/[0.08] hover:bg-[#F97316]/[0.12] border-l-4 border-l-[#F97316]"
-            : "hover:bg-[#141E33] border-l-4 border-l-transparent"
+            ? "bg-[#1877F2]/[0.08] hover:bg-[#1877F2]/[0.14]"
+            : "hover:bg-[#1E293B]/40"
         }`}
       >
-        <div
-          className="flex-shrink-0 relative cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onProfileClick(actor?.id || 0);
-          }}
-        >
-          <img
-            src={avatar}
-            alt={actorName}
-            className="w-14 h-14 rounded-full object-cover bg-[#1E293B] border border-[#1E293B] shadow-sm"
-          />
-
+        {/* Left: Avatar + Notification Text Content */}
+        <div className="flex items-start gap-3.5 min-w-0 flex-1">
+          {/* Avatar (52-56px) + Attached Badge */}
           <div
-            className="absolute -right-1 -bottom-1 min-w-[24px] h-[24px] rounded-full flex items-center justify-center border-2 border-[#0F172A] shadow-md px-1"
-            style={{ background: badge.bg }}
+            className="flex-shrink-0 relative cursor-pointer select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              onProfileClick(actor?.id || 0);
+            }}
           >
-            {badge.kind === "emoji" ? (
-              <span className="text-xs leading-none">{badge.value}</span>
-            ) : (
-              <i className={`${badge.value} text-[10px] text-white leading-none`} />
+            <img
+              src={avatar}
+              alt={actorName}
+              className="w-14 h-14 rounded-full object-cover bg-[#1E293B] border border-[#1E293B]"
+            />
+
+            {/* Contextual Badge attached to bottom-right */}
+            <div
+              className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-[#0B1120] shadow-md"
+              style={{ background: badge.bg }}
+            >
+              {badge.kind === "emoji" ? (
+                <span className="text-[11px] leading-none">{badge.value}</span>
+              ) : (
+                <i className={`${badge.value} text-[10px] text-white leading-none`} />
+              )}
+            </div>
+          </div>
+
+          {/* Text Area */}
+          <div className="flex-1 min-w-0 pr-1">
+            <div className="text-[16px] md:text-[17px] leading-snug break-words">
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onProfileClick(actor?.id || 0);
+                }}
+                className={`cursor-pointer hover:underline ${
+                  isUnread
+                    ? "font-bold text-white"
+                    : "font-semibold text-[#F8FAFC]"
+                }`}
+                style={{ fontSize: "17.5px" }}
+              >
+                {actorName}
+              </span>
+              <span
+                className={`select-text ml-1.5 ${
+                  isUnread
+                    ? "font-normal text-[#F1F5F9]"
+                    : "font-normal text-[#CBD5E1]"
+                }`}
+                style={{ fontSize: "16.5px" }}
+              >
+                {messageParts.middle}
+              </span>
+            </div>
+
+            {hasStack && (
+              <NotificationStackedAvatars
+                notification={n}
+                users={users}
+                onProfileClick={onProfileClick}
+              />
             )}
+
+            {/* Optional media/quote preview */}
+            {(previewText || previewImage) && (
+              <div className="mt-2 flex items-center gap-2.5 max-w-full bg-[#1E293B]/60 border border-[#334155]/40 rounded-xl p-2 text-xs transition-colors">
+                {previewImage && (
+                  <img
+                    src={previewImage}
+                    alt=""
+                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-[#0B1120]"
+                  />
+                )}
+                {previewText && (
+                  <div className="min-w-0 select-text">
+                    <span className="text-[#94A3B8] line-clamp-2">“{previewText}”</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Timestamp & Reaction preview */}
+            <div className="mt-1 flex items-center gap-2 flex-wrap select-none">
+              <span
+                className={`text-[14px] ${
+                  isUnread ? "text-[#38BDF8] font-medium" : "text-[#64748B] font-normal"
+                }`}
+              >
+                {formatTimestamp(displayTime)}
+              </span>
+
+              <NotificationReactionCluster notification={n} />
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleOpenNotification(n)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleOpenNotification(n);
-              }
-            }}
-            className="text-[15px] leading-snug text-[#F8FAFC] break-words cursor-pointer"
-          >
+        {/* Right: Unread Indicator Dot & Three-dot Menu */}
+        <div className="flex items-center gap-2 flex-shrink-0 select-none">
+          {/* Small BLUE unread indicator (Facebook-style) */}
+          {isUnread && (
             <span
-              onClick={(e) => {
-                e.stopPropagation();
-                onProfileClick(actor?.id || 0);
-              }}
-              className="font-bold text-[#F8FAFC] hover:text-[#F97316] transition-colors cursor-pointer"
-            >
-              {actorName}
-            </span>
-
-            {safeNumber(n.actors_count, 1) > 1 && (
-              <span className="font-bold text-[#F8FAFC]">
-                {messageParts.middle.startsWith(" and") ? "" : ""}
-              </span>
-            )}
-
-            <span className="font-medium text-[#CBD5E1]">
-              {" "}
-              {messageParts.middle}
-            </span>
-
-            {messageParts.cta && (
-              <span className="font-bold text-[#FB923C]">
-                {" "}
-                {messageParts.cta}
-              </span>
-            )}
-          </div>
-
-          {hasStack && (
-            <NotificationStackedAvatars
-              notification={n}
-              users={users}
-              onProfileClick={onProfileClick}
+              aria-label="Unread notification"
+              className="w-3 h-3 rounded-full bg-[#1877F2] shadow-[0_0_8px_rgba(24,119,242,0.6)] shrink-0"
             />
           )}
 
-          {(previewText || previewImage) && (
-            <div
-              onClick={() => handleOpenNotification(n)}
-              className="mt-2.5 flex items-center gap-2.5 max-w-full bg-[#070D1D] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#F97316]/40 rounded-xl p-2.5 text-[#94A3B8] text-xs transition-colors cursor-pointer"
+          {/* Three dots menu */}
+          <div
+            ref={(el) => {
+              menuRefs.current[notificationId] = el;
+            }}
+            className="relative"
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpenId((prev) => (prev === notificationId ? null : notificationId));
+              }}
+              aria-label="Notification options"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E293B] transition-colors"
             >
-              {previewImage && (
-                <img
-                  src={previewImage}
-                  alt="preview"
-                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-[#0B1120]"
-                />
-              )}
-              {previewText && (
-                <div className="min-w-0">
-                  <span className="mr-1 text-[#64748B]">“</span>
-                  <span className="text-[#94A3B8]">{previewText}</span>
-                  <span className="ml-1 text-[#64748B]">”</span>
-                </div>
-              )}
-            </div>
-          )}
+              <i className="fas fa-ellipsis-h text-sm" />
+            </button>
 
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
-            <span
-              className={`text-xs ${
-                isUnread ? "text-[#F97316] font-semibold" : "text-[#64748B] font-medium"
-              }`}
-            >
-              {formatTimestamp(displayTime)}
-            </span>
-
-            <NotificationReactionCluster notification={n} />
-
-            {isUnread && (
-              <span
-                aria-hidden
-                className="w-2 h-2 rounded-full bg-[#F97316] shadow-[0_0_8px_rgba(249,115,22,0.8)] inline-block flex-shrink-0"
-              />
+            {menuOpenId === notificationId && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-9 min-w-[200px] bg-[#0F172A] border border-[#1E293B] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100"
+              >
+                <button
+                  onClick={() => handleToggleReadStatus(notificationId, !isUnread)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[#F8FAFC] hover:bg-[#1E293B] text-xs font-semibold transition-colors text-left"
+                >
+                  <i className={`fas ${isUnread ? "fa-check" : "fa-envelope"} text-xs text-[#1877F2]`} />
+                  <span>{isUnread ? "Mark as read" : "Mark as unread"}</span>
+                </button>
+                <button
+                  onClick={() => handleDeleteNotification(notificationId)}
+                  disabled={deletingId === notificationId}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition-colors text-left disabled:opacity-50"
+                >
+                  <i className="fas fa-trash-alt text-xs" />
+                  <span>{deletingId === notificationId ? "Removing..." : "Remove this notification"}</span>
+                </button>
+              </div>
             )}
           </div>
-        </div>
-
-        <div
-          ref={(el) => {
-            menuRefs.current[notificationId] = el;
-          }}
-          className="relative flex-shrink-0"
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpenId((prev) => (prev === notificationId ? null : notificationId));
-            }}
-            aria-label="Notification menu"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E293B] transition-colors"
-          >
-            <i className="fas fa-ellipsis-h text-sm" />
-          </button>
-
-          {menuOpenId === notificationId && (
-            <div className="absolute right-0 top-9 min-w-[190px] bg-[#0B1120] border border-[#1E293B] rounded-xl shadow-2xl p-1 z-50">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteNotification(notificationId);
-                }}
-                disabled={deletingId === notificationId}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <i className="fas fa-trash-alt text-xs" />
-                <span>{deletingId === notificationId ? "Deleting..." : "Delete notification"}</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
   };
 
-  const newCount = newNotifications.length;
-  const earlierCount = earlierNotifications.length;
-
   return (
-    <section className="w-full max-w-3xl mx-auto py-3 px-2 sm:px-4 text-[#F8FAFC]">
+    <section className="w-full max-w-2xl mx-auto pb-16 text-[#F8FAFC]">
+      {/* HEADER: ← Notifications   ✓   🔍 */}
       <div
-        className={`bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-sm overflow-hidden mb-4 ${
-          stickyHeader ? "sticky top-16 z-20" : ""
+        className={`bg-[#0B1120] border-b border-[#1E293B] px-4 py-3.5 select-none ${
+          stickyHeader ? "sticky top-14 z-20" : ""
         }`}
       >
-        <div className="flex items-center justify-between gap-3 p-4 bg-[#0B1120]/90 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {onBack && (
               <button
                 onClick={onBack}
                 aria-label="Back"
-                className="w-10 h-10 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center transition-colors flex-shrink-0"
+                className="w-10 h-10 rounded-full hover:bg-[#1E293B] text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center transition-colors flex-shrink-0"
               >
-                <i className="fas fa-arrow-left text-sm" />
+                <i className="fas fa-arrow-left text-lg" />
               </button>
             )}
-            <h2 className="text-xl sm:text-2xl font-black text-[#F8FAFC] tracking-tight">
+            <h1 className="text-[26px] md:text-[28px] font-bold text-[#F8FAFC] tracking-tight leading-tight">
               Notifications
-            </h2>
+            </h1>
           </div>
 
-          <button
-            onClick={handleMarkAllAsRead}
-            disabled={isProcessing || unreadCount === 0}
-            aria-label="Mark all as read"
-            title="Mark all as read"
-            className={`h-9 px-3.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
-              isProcessing || unreadCount === 0
-                ? "bg-[#0F172A] border-[#1E293B] text-[#64748B] opacity-50 cursor-not-allowed"
-                : "bg-[#F97316] hover:bg-[#EA580C] border-[#F97316] text-white shadow-sm cursor-pointer"
-            }`}
-          >
-            <i className="fas fa-check text-xs" />
-            <span className="hidden sm:inline">Mark all as read</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Mark all as read (✓) */}
+            <button
+              onClick={handleMarkAllAsRead}
+              disabled={isProcessing || unreadCount === 0}
+              aria-label="Mark all as read"
+              title="Mark all as read"
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                isProcessing || unreadCount === 0
+                  ? "text-[#475569] cursor-not-allowed"
+                  : "hover:bg-[#1E293B] text-[#1877F2] hover:text-[#38BDF8] cursor-pointer"
+              }`}
+            >
+              <i className="fas fa-check-double text-lg" />
+            </button>
+
+            {/* Notification Search (🔍) */}
+            <button
+              onClick={() => setIsSearchOpen((prev) => !prev)}
+              aria-label="Search notifications"
+              title="Search notifications"
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                isSearchOpen
+                  ? "bg-[#1877F2] text-white"
+                  : "hover:bg-[#1E293B] text-[#94A3B8] hover:text-[#F8FAFC]"
+              }`}
+            >
+              <i className="fas fa-search text-base" />
+            </button>
+          </div>
         </div>
+
+        {/* Expandable Notification Search Input */}
+        {isSearchOpen && (
+          <div className="mt-3 relative animate-in fade-in duration-150">
+            <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-[#64748B]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search notifications..."
+              autoFocus
+              className="w-full bg-[#0F172A] border border-[#1E293B] focus:border-[#1877F2] rounded-xl py-2 pl-9 pr-8 text-sm text-[#F8FAFC] placeholder-[#64748B] outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#64748B] hover:text-[#F8FAFC]"
+              >
+                <i className="fas fa-times-circle" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-4">
+      {/* FLAT, CONTINUOUS NOTIFICATION FEED */}
+      <div className="divide-y divide-[#1E293B]/20">
+        {/* SECTION: NEW */}
         {newNotifications.length > 0 && (
-          <div className="bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1E293B] bg-[#0B1120]/50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">New</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#F97316]/15 text-[#F97316] border border-[#F97316]/30">
-                  {newCount}
-                </span>
-              </div>
+          <div className="pt-2">
+            <div className="px-4 pt-3 pb-1.5 flex items-center justify-between select-none">
+              <h2 className="text-[21px] md:text-[22px] font-bold text-[#F8FAFC] tracking-tight">
+                New
+              </h2>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#1877F2]/20 text-[#38BDF8] border border-[#1877F2]/30">
+                {newNotifications.length}
+              </span>
             </div>
             <div>{newNotifications.map(renderRow)}</div>
           </div>
         )}
 
-        {(visibleEarlierNotifications.length > 0 || (hasMore && Boolean(onLoadMore))) && (
-          <div className="bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1E293B] bg-[#0B1120]/50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">Earlier</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#1E293B] text-[#94A3B8]">
-                  {earlierCount}
-                </span>
-              </div>
+        {/* SECTION: TODAY */}
+        {todayNotifications.length > 0 && (
+          <div className="pt-2">
+            <div className="px-4 pt-4 pb-1.5 select-none">
+              <h2 className="text-[21px] md:text-[22px] font-bold text-[#F8FAFC] tracking-tight">
+                Today
+              </h2>
             </div>
+            <div>{todayNotifications.map(renderRow)}</div>
+          </div>
+        )}
 
+        {/* SECTION: EARLIER */}
+        {visibleEarlierNotifications.length > 0 && (
+          <div className="pt-2">
+            <div className="px-4 pt-4 pb-1.5 select-none">
+              <h2 className="text-[21px] md:text-[22px] font-bold text-[#F8FAFC] tracking-tight">
+                Earlier
+              </h2>
+            </div>
             <div>{visibleEarlierNotifications.map(renderRow)}</div>
 
             {hasMoreEarlier && (
-              <div className="p-3 bg-[#0B1120]/30 border-t border-[#1E293B]">
+              <div className="p-4">
                 <button
                   onClick={handleLoadMoreEarlier}
                   disabled={isLoadingMore}
-                  className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#141E33] border border-[#1E293B] hover:border-[#F97316]/50 text-[#F8FAFC] text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  className="w-full py-2.5 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] hover:border-[#1877F2]/40 text-[#F8FAFC] text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 select-none shadow-sm"
                 >
                   {isLoadingMore ? (
                     <>
-                      <i className="fas fa-spinner fa-spin text-xs text-[#F97316]" />
+                      <i className="fas fa-spinner fa-spin text-sm text-[#1877F2]" />
                       <span>Loading previous notifications...</span>
                     </>
                   ) : (
@@ -986,23 +880,31 @@ export const NotificationsPage: React.FC<Props> = ({
           </div>
         )}
 
-        {localNotifications.length === 0 && (
-          <div className="bg-[#0F172A] border border-[#1E293B] rounded-2xl p-12 text-center text-[#94A3B8]">
-            <div className="w-16 h-16 rounded-full bg-[#141E33] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-[#F97316] text-2xl">
+        {/* EMPTY STATE */}
+        {sortedNotifications.length === 0 && (
+          <div className="py-20 px-6 text-center select-none">
+            <div className="w-16 h-16 rounded-full bg-[#1E293B]/60 border border-[#334155]/40 flex items-center justify-center mx-auto mb-4 text-[#1877F2] text-2xl shadow-inner">
               <i className="fas fa-bell-slash" />
             </div>
-            <p className="text-base font-semibold text-[#F8FAFC]">No notifications yet</p>
-            <p className="text-xs text-[#64748B] mt-1">We'll let you know when something arrives</p>
+            <p className="text-[19px] font-bold text-[#F8FAFC]">
+              {searchQuery ? "No notifications matching search" : "No notifications yet"}
+            </p>
+            <p className="text-sm text-[#64748B] mt-1.5 max-w-xs mx-auto">
+              {searchQuery
+                ? "Try searching for a different person or keyword"
+                : "When people like, comment, or interact with your content, you'll see them here."}
+            </p>
           </div>
         )}
       </div>
 
+      {/* TOAST FEEDBACK */}
       {toast && (
         <div
           className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xl border flex items-center gap-2 ${
             toast.type === "error"
               ? "bg-rose-950/90 border-rose-800 text-rose-200"
-              : "bg-[#0B1120] border-[#F97316] text-[#F8FAFC]"
+              : "bg-[#0F172A] border-[#1877F2] text-[#F8FAFC]"
           }`}
         >
           {toast.text}
