@@ -1,5 +1,6 @@
 // functions/api/stories.ts
 import type { PagesFunction } from "@cloudflare/workers-types";
+import { withNewContentId } from "../utils/ids";
 
 type Env = { DB: D1Database };
 
@@ -274,18 +275,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const music_url = body.music_url ? toStr(body.music_url).trim() : null;
     const music_title = body.music_title ? toStr(body.music_title).trim() : null;
 
-    // ✅ Backend-controlled defaults
     const effect_id = toStr(body.effect_id || "none", "none").trim() || "none";
 
-    // Start music from better part
     const music_start = clamp(toNum(body.music_start, 5), 0, 90);
-
-    // null = frontend plays until story ends
     const music_end = toNullableNum(body.music_end);
-
     const music_duration = Math.max(0, toNum(body.music_duration, 0));
-
-    // ✅ 1.5 minutes max story duration
     const duration = clamp(toNum(body.duration, 90), 1, 90);
 
     if (!user_id) return json({ success: false, error: "user_id is required" }, 400);
@@ -357,58 +351,26 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       ? JSON.stringify(media_meta_arr)
       : null;
 
-    let result: D1Result<any>;
+    // ─────────────────────────────────────────────────────────
+    // Allocate hard, globally-unique content ID.
+    // Three fallback INSERTs (new / medium / ancient schema).
+    // Each gets `id` as the first column and first bind arg.
+    // ─────────────────────────────────────────────────────────
+    let story_id: number;
 
-    // ✅ New table with effect/music/duration columns
     try {
-      const stmt = `
-        INSERT INTO stories
-        (
-          user_id,
-          type,
-          media_url,
-          media_urls,
-          media_types,
-          media_meta,
-          text_content,
-          background_style,
-          music_url,
-          music_title,
-          music_start,
-          music_end,
-          music_duration,
-          effect_id,
-          duration,
-          expires_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '9999-12-31')
-      `;
-
-      result = await env.DB.prepare(stmt)
-        .bind(
-          user_id,
-          type,
-          final_media_url,
-          media_urls_json,
-          media_types_json,
-          media_meta_json,
-          text_content,
-          background_style,
-          music_url,
-          music_title,
-          music_start,
-          music_end,
-          music_duration,
-          effect_id,
-          duration
-        )
-        .run();
-    } catch {
-      // ✅ Older table with media_meta but no new columns
-      try {
+      // ── Primary INSERT ──
+      // Columns (17): id, user_id, type, media_url, media_urls,
+      //   media_types, media_meta, text_content, background_style,
+      //   music_url, music_title, music_start, music_end,
+      //   music_duration, effect_id, duration, expires_at (literal)
+      // Placeholders: 16 `?` + literal '9999-12-31' for expires_at
+      // Bind args: 16
+      const { id } = await withNewContentId(async (id) => {
         const stmt = `
           INSERT INTO stories
           (
+            id,
             user_id,
             type,
             media_url,
@@ -419,13 +381,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             background_style,
             music_url,
             music_title,
+            music_start,
+            music_end,
+            music_duration,
+            effect_id,
+            duration,
             expires_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '9999-12-31')
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '9999-12-31')
         `;
 
-        result = await env.DB.prepare(stmt)
+        return await env.DB.prepare(stmt)
           .bind(
+            id,
             user_id,
             type,
             final_media_url,
@@ -435,41 +403,95 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             text_content,
             background_style,
             music_url,
-            music_title
-          )
-          .run();
-      } catch {
-        // ✅ Very old table fallback
-        const stmt = `
-          INSERT INTO stories
-          (
-            user_id,
-            type,
-            media_url,
-            text_content,
-            background_style,
-            music_url,
             music_title,
-            expires_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, '9999-12-31')
-        `;
-
-        result = await env.DB.prepare(stmt)
-          .bind(
-            user_id,
-            type,
-            final_media_url,
-            text_content,
-            background_style,
-            music_url,
-            music_title
+            music_start,
+            music_end,
+            music_duration,
+            effect_id,
+            duration
           )
           .run();
+      });
+      story_id = id;
+    } catch {
+      try {
+        // ── Medium INSERT (no effect/music/duration columns) ──
+        // Columns: id + 10 originals = 11
+        // Placeholders: 10 `?` + literal '9999-12-31'
+        const { id } = await withNewContentId(async (id) => {
+          const stmt = `
+            INSERT INTO stories
+            (
+              id,
+              user_id,
+              type,
+              media_url,
+              media_urls,
+              media_types,
+              media_meta,
+              text_content,
+              background_style,
+              music_url,
+              music_title,
+              expires_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '9999-12-31')
+          `;
+
+          return await env.DB.prepare(stmt)
+            .bind(
+              id,
+              user_id,
+              type,
+              final_media_url,
+              media_urls_json,
+              media_types_json,
+              media_meta_json,
+              text_content,
+              background_style,
+              music_url,
+              music_title
+            )
+            .run();
+        });
+        story_id = id;
+      } catch {
+        // ── Ancient INSERT (only base columns) ──
+        // Columns: id + 7 originals = 8
+        // Placeholders: 7 `?` + literal '9999-12-31'
+        const { id } = await withNewContentId(async (id) => {
+          const stmt = `
+            INSERT INTO stories
+            (
+              id,
+              user_id,
+              type,
+              media_url,
+              text_content,
+              background_style,
+              music_url,
+              music_title,
+              expires_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '9999-12-31')
+          `;
+
+          return await env.DB.prepare(stmt)
+            .bind(
+              id,
+              user_id,
+              type,
+              final_media_url,
+              text_content,
+              background_style,
+              music_url,
+              music_title
+            )
+            .run();
+        });
+        story_id = id;
       }
     }
-
-    const story_id = Number(result.meta?.last_row_id);
 
     let story: any = await env.DB.prepare(
       `
